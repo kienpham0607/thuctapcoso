@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -8,9 +8,11 @@ import Box from '@mui/material/Box';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import logo from '../../assets/logo.png';
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from '../../contexts/AuthContext';
 
 export default function Header() {
   const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
   return (
     <AppBar
       position="static"
@@ -69,26 +71,51 @@ export default function Header() {
           <NotificationsIcon />
         </IconButton>
 
-        {/* Nút Sign In */}
-        <Button
-          variant="contained"
-          onClick={() => {
-            console.log("Header Sign In clicked");
-            navigate("/admin/login");
-          }}
-          sx={{
-            backgroundColor: '#16977D',
-            borderRadius: 20,
-            height: 30,
-            width: 100,
-            textTransform: 'none',
-            '&:hover': {
-              backgroundColor: '#12725f'
-            },
-          }}
-        >
-          Sign In
-        </Button>
+        {/* Hiển thị email hoặc nút Sign In */}
+        {user ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography sx={{ color: '#16977D' }}>
+              {user.email}
+            </Typography>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
+              sx={{
+                borderColor: '#16977D',
+                color: '#16977D',
+                borderRadius: 20,
+                height: 30,
+                textTransform: 'none',
+                '&:hover': {
+                  borderColor: '#12725f',
+                  backgroundColor: 'rgba(18, 114, 95, 0.04)'
+                },
+              }}
+            >
+              Logout
+            </Button>
+          </Box>
+        ) : (
+          <Button
+            variant="contained"
+            onClick={() => navigate("/admin/login")}
+            sx={{
+              backgroundColor: '#16977D',
+              borderRadius: 20,
+              height: 30,
+              width: 100,
+              textTransform: 'none',
+              '&:hover': {
+                backgroundColor: '#12725f'
+              },
+            }}
+          >
+            Sign In
+          </Button>
+        )}
       </Toolbar>
     </AppBar>
   );

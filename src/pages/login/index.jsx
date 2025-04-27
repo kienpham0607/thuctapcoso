@@ -27,10 +27,8 @@ export default function LoginPage() {
   const location = useLocation();
   const { login, user } = useContext(AuthContext);
 
-  // Lấy đường dẫn trước đó mà người dùng muốn truy cập (nếu có)
-  const from = location.state?.from?.pathname || "/admin";
-  const isAdminLogin = location.pathname.startsWith("/admin/login");
-  const redirectPath = isAdminLogin ? "/admin/dashboard" : "/";
+  // Chuyển về trang chủ sau khi đăng nhập thành công
+  const redirectPath = "/";
 
   // Nếu đã đăng nhập, chuyển hướng đến trang yêu cầu
   useEffect(() => {
@@ -52,7 +50,7 @@ export default function LoginPage() {
       const success = login({ email, role: "admin" });
 
       if (success) {
-        console.log("Đăng nhập thành công, chuyển hướng đến:", from);
+        console.log("Đăng nhập thành công, chuyển hướng về trang chủ");
         navigate(redirectPath);
       }
     } else {
