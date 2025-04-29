@@ -9,6 +9,8 @@ import SignUpPage from "./pages/signup";
 import { AuthProvider } from "./contexts/AuthContext";
 import ContactPage from './pages/Contact';
 import PersonalProfile from './pages/PersonalProfile';
+import About from './pages/About';
+import MyAccount from './pages/MyAccount';
 import TestList from './components/TestList';
 import TestQuestions from './components/TestQuestions';
 
@@ -21,10 +23,14 @@ function App() {
             {/* Hide header on login and signup pages */}
             <Route
               path="/"
+              element={<HomePage />}
+            />
+            <Route
+              path="/about"
               element={
                 <>
                   <Header />
-                  <HomePage />
+                  <About />
                 </>
               }
             />
@@ -82,6 +88,15 @@ function App() {
                 <>
                   <Header />
                   <TestQuestions />
+                </>
+              }
+            />
+            <Route
+              path="/my-account"
+              element={
+                <>
+                  <Header />
+                  <MyAccount />
                 </>
               }
             />
