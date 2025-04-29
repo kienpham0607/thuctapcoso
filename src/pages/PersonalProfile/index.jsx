@@ -1,41 +1,39 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import GpaProgressCircle from '../../components/GpaProgressCircle';
-import { 
-  Container, 
-  Paper, 
-  Grid, 
-  TextField, 
-  IconButton, 
-  Button, 
-  Box, 
-  MenuItem, 
-  Select, 
+import GPAChart from '../../components/GPAChart';
+import {
+  Container,
+  Paper,
+  Grid,
+  TextField,
+  IconButton,
+  Button,
+  Box,
+  MenuItem,
+  Select,
   FormControl,
-  Card, 
+  Card,
   CardContent,
+  Typography,
+  Fade,
+  Zoom,
   List,
   ListItem,
   ListItemIcon,
-  ListItemText,
-  CircularProgress,
-  Divider,
-  Typography,
-  Fade,
-  Zoom
+  ListItemText
 } from '@mui/material';
-import { 
-  Add as AddIcon, 
-  Close as CloseIcon, 
+import { Snackbar, Alert } from '@mui/material';
+import {
+  Add as AddIcon,
+  Close as CloseIcon,
+  School as SchoolIcon,
   AccessTime as AccessTimeIcon,
   Group as GroupIcon,
-  TrendingUp as TrendingUpIcon,
-  RadioButtonChecked as RadioButtonCheckedIcon,
-  LocationOn as LocationOnIcon,
-  School as SchoolIcon
+  RadioButtonChecked as RadioButtonCheckedIcon
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
-// Create a custom theme
 const theme = createTheme({
   palette: {
     primary: {
@@ -94,37 +92,44 @@ const theme = createTheme({
 
 const gradeOptions = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];
 
+const guideFeatures = [
+  {
+    icon: '📊',
+    title: 'Performance Analytics',
+    desc: 'Track your GPA trends'
+  },
+  {
+    icon: '🎯',
+    title: 'Set Goals',
+    desc: 'Define your target GPA'
+  },
+  {
+    icon: '📋',
+    title: 'Semester Planning',
+    desc: 'Plan your course load'
+  },
+  {
+    icon: '📈',
+    title: 'Progress Tracking',
+    desc: 'Monitor improvements'
+  }
+];
+
 function PersonalProfile() {
-  // Function to delete a semester
+  const navigate = useNavigate();
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  
+  const [semesters, setSemesters] = useState(() => {
+    const savedData = localStorage.getItem('semestersData');
+    return savedData ? JSON.parse(savedData) : [];
+  });
+
   const deleteSemester = (semesterId) => {
     setSemesters(semesters.filter(semester => semester.id !== semesterId));
   };
-  const [semesters, setSemesters] = useState([
-    {
-      id: 1,
-      title: 'Semester 1',
-      gpa: 0.0,
-      courses: Array(5).fill().map((_, i) => ({
-        id: i + 1,
-        courseName: '',
-        credits: '',
-        grade: '',
-      }))
-    },
-    {
-      id: 2,
-      title: 'Semester 2',
-      gpa: 0.0,
-      courses: Array(4).fill().map((_, i) => ({ 
-        id: i + 1, 
-        courseName: '',
-        credits: '', 
-        grade: '', 
-      }))
-    }
-  ]);
 
-  // Function to add a new course to a semester
   const addCourse = (semesterId) => {
     const updatedSemesters = semesters.map(semester => {
       if (semester.id === semesterId) {
@@ -144,7 +149,6 @@ function PersonalProfile() {
     setSemesters(updatedSemesters);
   };
 
-  // Function to add a new semester
   const addSemester = () => {
     const newSemesterId = semesters.length + 1;
     const newSemester = {
@@ -156,7 +160,6 @@ function PersonalProfile() {
     setSemesters([...semesters, newSemester]);
   };
 
-  // Function to delete a course
   const deleteCourse = (semesterId, courseId) => {
     const updatedSemesters = semesters.map(semester => {
       if (semester.id === semesterId) {
@@ -170,7 +173,6 @@ function PersonalProfile() {
     setSemesters(updatedSemesters);
   };
 
-  // Helper function to convert grade to GPA points
   const gradeToPoints = (grade) => {
     const points = {
       'A+': 4.0, 'A': 4.0, 'A-': 3.7,
@@ -182,7 +184,6 @@ function PersonalProfile() {
     return points[grade] || 0;
   };
 
-  // Function to calculate GPA for a semester
   const calculateSemesterGPA = (courses) => {
     let totalPoints = 0;
     let totalCredits = 0;
@@ -199,7 +200,6 @@ function PersonalProfile() {
     return totalCredits > 0 ? totalPoints / totalCredits : 0;
   };
 
-  // Function to handle credits change
   const handleCreditsChange = (semesterId, courseId, newCredits) => {
     const updatedSemesters = semesters.map(semester => {
       if (semester.id === semesterId) {
@@ -220,7 +220,6 @@ function PersonalProfile() {
     setSemesters(updatedSemesters);
   };
 
-  // Function to handle grade change
   const handleGradeChange = (semesterId, courseId, newGrade) => {
     const updatedSemesters = semesters.map(semester => {
       if (semester.id === semesterId) {
@@ -241,7 +240,6 @@ function PersonalProfile() {
     setSemesters(updatedSemesters);
   };
 
-  // Calculate overall GPA
   const calculateOverallGPA = () => {
     let totalPoints = 0;
     let totalCredits = 0;
@@ -285,6 +283,19 @@ function PersonalProfile() {
 
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
           <Grid container spacing={3}>
+            {/* GPA Chart */}
+            <Grid item xs={12}>
+              <Zoom in={true}>
+                <Box id="gpa-chart">
+                  <GPAChart
+                    semesters={semesters}
+                    calculateOverallGPA={calculateOverallGPA}
+                  />
+                </Box>
+              </Zoom>
+            </Grid>
+
+            {/* Semester List */}
             <Grid item xs={12} md={8}>
               {semesters.map((semester, index) => (
                 <Zoom in={true} style={{ transitionDelay: `${index * 100}ms` }} key={semester.id}>
@@ -438,26 +449,54 @@ function PersonalProfile() {
                 </Zoom>
               ))}
 
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                size="large"
-                sx={{ mb: 4 }}
-                onClick={addSemester}
-              >
-                Add New Semester
-              </Button>
+              <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  size="large"
+                  onClick={addSemester}
+                >
+                  Add New Semester
+                </Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="large"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('semestersData', JSON.stringify(semesters));
+                      setSnackbarMessage('Data saved successfully!');
+                      setSnackbarSeverity('success');
+                      setOpenSnackbar(true);
+                    } catch (error) {
+                      setSnackbarMessage('Failed to save data. Please try again.');
+                      setSnackbarSeverity('error');
+                      setOpenSnackbar(true);
+                    }
+                  }}
+                  sx={{
+                    bgcolor: '#16977D',
+                    '&:hover': {
+                      bgcolor: '#12725f'
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </Box>
 
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }} className="gpa-progress-circle">
                 <GpaProgressCircle gpa={parseFloat(calculateOverallGPA())} />
               </Box>
             </Grid>
             
+            {/* Personal Guide */}
             <Grid item xs={12} md={4}>
               <Zoom in={true}>
-                <Card sx={{ 
+                <Card sx={{
                   borderRadius: '16px',
                   background: 'linear-gradient(135deg, #fff 0%, #f5f5f5 100%)',
+                  mb: 3,
                 }}>
                   <CardContent>
                     <Typography variant="h6" gutterBottom color="primary" sx={{ mb: 3 }}>
@@ -468,7 +507,7 @@ function PersonalProfile() {
                         <ListItemIcon>
                           <RadioButtonCheckedIcon color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
+                        <ListItemText
                           primary="Stay consistent with your study schedule"
                           sx={{ '& .MuiTypography-root': { fontWeight: 500 } }}
                         />
@@ -478,7 +517,7 @@ function PersonalProfile() {
                         <ListItemIcon>
                           <RadioButtonCheckedIcon color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
+                        <ListItemText
                           primary="Review your notes after every class"
                           sx={{ '& .MuiTypography-root': { fontWeight: 500 } }}
                         />
@@ -488,53 +527,247 @@ function PersonalProfile() {
                         <ListItemIcon>
                           <AccessTimeIcon color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
+                        <ListItemText
                           primary="Use Pomodoro technique"
                           secondary="25 mins study + 5 mins break"
                         />
                       </ListItem>
                       
-                      <ListItem sx={{ mb: 2 }}>
+                      <ListItem>
                         <ListItemIcon>
                           <GroupIcon color="primary" />
                         </ListItemIcon>
-                        <ListItemText 
+                        <ListItemText
                           primary="Study with classmates"
                           secondary="Share knowledge and perspectives"
                         />
                       </ListItem>
-                      
-                      <ListItem>
-                        <ListItemIcon>
-                          <TrendingUpIcon color="primary" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary="Track your progress"
-                          secondary="Aim to improve 1% every day"
-                        />
-                      </ListItem>
                     </List>
-                    
-                    <Divider sx={{ my: 3 }} />
-                    
-                    <Typography 
-                      variant="body1" 
-                      align="center" 
-                      sx={{ 
-                        fontStyle: 'italic',
-                        color: theme.palette.primary.main,
-                        fontWeight: 500
-                      }}
-                    >
-                      "Small habits lead to big results"
+                  </CardContent>
+                </Card>
+              </Zoom>
+
+              {/* Personal Guide Card */}
+              <Zoom in={true}>
+                <Card sx={{
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                }}>
+                  <Box sx={{
+                    backgroundColor: '#16977D',
+                    py: 2,
+                    px: 3,
+                    color: 'white'
+                  }}>
+                    <Typography variant="h6" fontWeight="bold">
+                      Personal Guide
                     </Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5, opacity: 0.9 }}>
+                      Track your progress
+                    </Typography>
+                  </Box>
+                  <CardContent>
+                    {[
+                      {
+                        icon: '📊',
+                        title: 'GPA Analysis',
+                        desc: 'View your GPA trend chart and semester performance',
+                        onClick: () => {
+                          document.getElementById('gpa-chart').scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                          });
+                        }
+                      },
+                      {
+                        icon: '✏️',
+                        title: 'Course Management',
+                        desc: 'Add/edit courses and manage semester grades',
+                        onClick: () => {
+                          addSemester();
+                          setTimeout(() => {
+                            window.scrollTo({
+                              top: document.body.scrollHeight,
+                              behavior: 'smooth'
+                            });
+                          }, 100);
+                        }
+                      },
+                      {
+                        icon: '🎓',
+                        title: 'Academic Progress',
+                        desc: 'Track your overall academic performance and GPA',
+                        onClick: () => {
+                          document.querySelector('.gpa-progress-circle').scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                          });
+                        }
+                      },
+                      {
+                        icon: '📚',
+                        title: 'Study Resources',
+                        desc: 'Access practice tests and study materials',
+                        onClick: () => {
+                          navigate('/practice-test');
+                        }
+                      }
+                    ].map((item, index) => (
+                      <Box
+                        key={index}
+                        onClick={item.onClick}
+                        sx={{
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 2,
+                          p: 2,
+                          '&:not(:last-child)': {
+                            borderBottom: '1px solid rgba(0,0,0,0.08)'
+                          },
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            backgroundColor: 'rgba(22, 151, 125, 0.05)',
+                            transform: 'translateX(8px)'
+                          }
+                        }}
+                      >
+                        <Typography sx={{ fontSize: '24px' }}>
+                          {item.icon}
+                        </Typography>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {item.title}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {item.desc}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
                   </CardContent>
                 </Card>
               </Zoom>
             </Grid>
           </Grid>
+
+          {/* User Guide Section */}
+          <Box sx={{ mt: 6, mb: 4 }}>
+            <Card sx={{
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            }}>
+              <Box sx={{
+                backgroundColor: '#16977D',
+                py: 2,
+                px: 3,
+                color: 'white'
+              }}>
+                <Typography variant="h6" fontWeight="bold">
+                  Personal Profile Guide
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5, opacity: 0.9 }}>
+                  How to use this page effectively
+                </Typography>
+              </Box>
+              <CardContent>
+                <Grid container spacing={4}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="h6" sx={{ mb: 3, color: '#16977D', fontWeight: 'bold' }}>
+                      Managing Your Academic Progress
+                    </Typography>
+                    <Box component="ul" sx={{ pl: 2 }}>
+                      <Typography component="li" sx={{ mb: 2 }}>
+                        <strong>Add Semester:</strong> Click the "Add New Semester" button to create a new semester.
+                      </Typography>
+                      <Typography component="li" sx={{ mb: 2 }}>
+                        <strong>Add Courses:</strong> Within each semester, use "Add Course" to include your courses.
+                      </Typography>
+                      <Typography component="li" sx={{ mb: 2 }}>
+                        <strong>Enter Details:</strong> For each course, input the course name, credits, and grade.
+                      </Typography>
+                      <Typography component="li">
+                        <strong>Track Progress:</strong> View your GPA chart and progress circle for performance tracking.
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="h6" sx={{ mb: 3, color: '#16977D', fontWeight: 'bold' }}>
+                      Using Profile Features
+                    </Typography>
+                    <Box component="ul" sx={{ pl: 2 }}>
+                      <Typography component="li" sx={{ mb: 2 }}>
+                        <strong>GPA Analysis:</strong> Click to view detailed GPA trends and semester comparisons.
+                      </Typography>
+                      <Typography component="li" sx={{ mb: 2 }}>
+                        <strong>Course Management:</strong> Easily add or modify your course information.
+                      </Typography>
+                      <Typography component="li" sx={{ mb: 2 }}>
+                        <strong>Academic Progress:</strong> Monitor your overall academic performance.
+                      </Typography>
+                      <Typography component="li">
+                        <strong>Study Resources:</strong> Access practice tests and study materials for improvement.
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ mt: 4, p: 2, backgroundColor: 'rgba(22, 151, 125, 0.05)', borderRadius: 2 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2, color: '#16977D', fontWeight: 'bold' }}>
+                    Pro Tips:
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        • Regularly update your grades to maintain accurate GPA calculations
+                      </Typography>
+                      <Typography variant="body2">
+                        • Use the Study Smart Tips section for effective learning strategies
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        • Check your progress circle to track your overall performance
+                      </Typography>
+                      <Typography variant="body2">
+                        • Take advantage of practice tests to improve your grades
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
         </Container>
       </Box>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={2000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          '& .MuiAlert-root': {
+            width: '100%',
+            maxWidth: '400px',
+          }
+        }}
+      >
+        <Alert
+          onClose={() => setOpenSnackbar(false)}
+          severity={snackbarSeverity}
+          variant="standard"
+          elevation={0}
+          sx={{
+            width: '100%',
+            fontSize: '1rem',
+            alignItems: 'center'
+          }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   );
 }

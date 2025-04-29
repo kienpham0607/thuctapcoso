@@ -148,57 +148,136 @@ export default function PractiseTests() {
 
       {/* Instructions section */}
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Fade in={true} timeout={1000}>
-          <Box>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
-          Practice Test Guide
-        </Typography>
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          Our practice tests are designed to help you assess your knowledge and prepare for exams.
-          Follow these simple steps to get started:
-        </Typography>
+        <Box sx={{
+          backgroundColor: '#fff',
+          borderRadius: 3,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          overflow: 'hidden'
+        }}>
+          <Box sx={{
+            backgroundColor: '#16977D',
+            py: 3,
+            px: 4,
+            color: 'white'
+          }}>
+            <Typography variant="h5" fontWeight="bold">
+              Practice Test Guide
+            </Typography>
+            <Typography sx={{ mt: 1, opacity: 0.9 }}>
+              Follow these steps to make the most of your learning experience
+            </Typography>
+          </Box>
 
-        <Box sx={{ pl: 2, mt: 1 }}>
-          <ol>
-            <li><strong>Select a subject</strong> from the options above</li>
-            <li><strong>Choose difficulty level</strong> that matches your current knowledge</li>
-            <li><strong>Complete questions</strong> within the time limit</li>
-            <li><strong>Review answers</strong> and learn from mistakes</li>
-          </ol>
-        </Box>
+          <Box sx={{ p: 4 }}>
+            <Grid container spacing={4}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="h6" sx={{ mb: 3, color: '#16977D', fontWeight: 'bold' }}>
+                  Getting Started
+                </Typography>
+                <Box sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2
+                }}>
+                  {[
+                    {
+                      step: '01',
+                      title: 'Choose Your Subject',
+                      desc: 'Select a subject that you want to practice from the available options'
+                    },
+                    {
+                      step: '02',
+                      title: 'Select Test Level',
+                      desc: 'Pick a test that matches your current knowledge level'
+                    },
+                    {
+                      step: '03',
+                      title: 'Complete Questions',
+                      desc: 'Answer all questions within the given time limit'
+                    },
+                    {
+                      step: '04',
+                      title: 'Review Results',
+                      desc: 'Check your answers and learn from any mistakes'
+                    }
+                  ].map((item) => (
+                    <Box key={item.step} sx={{
+                      display: 'flex',
+                      gap: 2,
+                      alignItems: 'flex-start'
+                    }}>
+                      <Box sx={{
+                        backgroundColor: 'rgba(22, 151, 125, 0.1)',
+                        color: '#16977D',
+                        borderRadius: 1,
+                        px: 1.5,
+                        py: 0.5,
+                        fontSize: '0.875rem',
+                        fontWeight: 'bold'
+                      }}>
+                        {item.step}
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {item.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {item.desc}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
 
-            <Grid container spacing={2} sx={{ mt: 3 }}>
-          <Grid item xs={12} md={6}>
-            <Zoom in={true}>
-              <Card>
-              <CardContent>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="h6" sx={{ mb: 3, color: '#16977D', fontWeight: 'bold' }}>
                   Study Tips
                 </Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Make the most of your practice sessions with our effective learning strategies.
-                </Typography>
-              </CardContent>
-              </Card>
-            </Zoom>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Zoom in={true}>
-              <Card>
-              <CardContent>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  Track Progress
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Monitor your progress over time and identify areas that need more focus.
-                </Typography>
-              </CardContent>
-              </Card>
-            </Zoom>
-          </Grid>
+                <Grid container spacing={2}>
+                  {[
+                    {
+                      title: 'Regular Practice',
+                      desc: 'Set aside dedicated time for practice sessions'
+                    },
+                    {
+                      title: 'Track Progress',
+                      desc: 'Monitor your improvement over time'
+                    },
+                    {
+                      title: 'Learn from Mistakes',
+                      desc: 'Review incorrect answers to understand concepts better'
+                    },
+                    {
+                      title: 'Time Management',
+                      desc: 'Practice working within time constraints'
+                    }
+                  ].map((tip, index) => (
+                    <Grid item xs={12} key={index}>
+                      <Card sx={{
+                        backgroundColor: 'rgba(22, 151, 125, 0.05)',
+                        borderRadius: 2,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(22, 151, 125, 0.1)',
+                        }
+                      }}>
+                        <CardContent>
+                          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                            {tip.title}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {tip.desc}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Grid>
             </Grid>
           </Box>
-        </Fade>
+        </Box>
       </Container>
     </Box>
   );

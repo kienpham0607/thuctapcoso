@@ -9,6 +9,8 @@ import SignUpPage from "./pages/signup";
 import { AuthProvider } from "./contexts/AuthContext";
 import ContactPage from './pages/Contact';
 import PersonalProfile from './pages/PersonalProfile';
+import TestList from './components/TestList';
+import TestQuestions from './components/TestQuestions';
 
 function App() {
   return (
@@ -62,6 +64,24 @@ function App() {
                 <>
                   <Header />
                   <PractiseTests />
+                </>
+              }
+            />
+            <Route
+              path="/practice/:subject"
+              element={
+                <>
+                  <Header />
+                  <TestList />
+                </>
+              }
+            />
+            <Route
+              path="/practice/:subject/test/:testId"
+              element={
+                <>
+                  <Header />
+                  <TestQuestions />
                 </>
               }
             />
