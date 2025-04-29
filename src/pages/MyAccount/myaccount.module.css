@@ -1,0 +1,15 @@
+.selected {
+  color: #16977D !important;
+}
+
+.menuItem:hover {
+  background-color: rgba(22, 151, 125, 0.04);
+}
+
+.menuItemSelected {
+  background-color: rgba(22, 151, 125, 0.08) !important;
+}
+
+.menuItemSelected:hover {
+  background-color: rgba(22, 151, 125, 0.12) !important;
+}
