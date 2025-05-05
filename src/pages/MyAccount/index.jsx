@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
+import axios from 'axios';
 import {
   Box,
   Card,
@@ -201,15 +202,80 @@ export default function MyAccount() {
                 px: 3,
                 pb: 3,
               }}>
-                <Avatar
+                <Box
                   sx={{
-                    width: 100,
-                    height: 100,
-                    border: '4px solid white',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    position: 'relative',
+                    '&:hover .upload-overlay': {
+                      opacity: 1
+                    }
                   }}
-                  src={user?.photoURL || '/placeholder.svg'}
-                />
+                >
+                  <Avatar
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      border: '4px solid white',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    }}
+                    src={user?.photoURL || '/placeholder.svg'}
+                  />
+                  <Box
+                    className="upload-overlay"
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      borderRadius: '50%',
+                      opacity: 0,
+                      transition: 'opacity 0.2s',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => document.getElementById('avatar-upload').click()}
+                  >
+                    <Typography sx={{ color: 'white', fontSize: '0.75rem' }}>
+                      Change Photo
+                    </Typography>
+                  </Box>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const formData = new FormData();
+                        formData.append('avatar', file);
+                        
+                        try {
+                          const response = await axios.post('/api/auth/upload-avatar', formData, {
+                            headers: {
+                              'Content-Type': 'multipart/form-data',
+                              'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                          });
+                          
+                          if (response.data.avatar) {
+                            // Update avatar in UI
+                            const avatarUrl = response.data.avatar;
+                            user.photoURL = avatarUrl;
+                            // Force re-render
+                            setSelectedSection(selectedSection);
+                          }
+                        } catch (error) {
+                          console.error('Error uploading avatar:', error);
+                          alert('Failed to upload avatar. Please try again.');
+                        }
+                      }
+                    }}
+                  />
+                </Box>
                 <Typography variant="h5" sx={{ mt: 2, fontWeight: 600, color: '#111827' }}>
                   {user?.displayName || user?.email?.split('@')[0]}
                 </Typography>

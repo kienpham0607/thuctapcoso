@@ -1,6 +1,30 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/avatars')
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname))
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 1024 * 1024 * 5 }, // 5MB limit
+    fileFilter: function (req, file, cb) {
+        // Accept images only
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+            return cb(new Error('Only image files are allowed!'), false);
+        }
+        cb(null, true);
+    }
+}).single('avatar');
 
 // Đăng ký
 exports.register = async (req, res) => {
@@ -63,4 +87,34 @@ exports.login = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+};
+
+// Upload avatar
+exports.uploadAvatar = async (req, res) => {
+    upload(req, res, async function (err) {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({ message: 'File upload error' });
+        } else if (err) {
+            return res.status(400).json({ message: err.message });
+        }
+
+        try {
+            if (!req.file) {
+                return res.status(400).json({ message: 'No file uploaded' });
+            }
+
+            const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+            
+            // Update user avatar in database
+            const userId = req.user.userId; // Assuming middleware sets user info
+            await User.findByIdAndUpdate(userId, { avatar: avatarUrl });
+
+            res.status(200).json({
+                message: 'Avatar uploaded successfully',
+                avatar: avatarUrl
+            });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    });
 };
