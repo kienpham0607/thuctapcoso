@@ -1,6 +1,8 @@
-import React, { useContext, useState, useEffect, useMemo } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
-import axios from 'axios';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
+import { useUploadAvatarMutation } from '../../features/auth/authApiService';
 import {
   Box,
   Card,
@@ -28,29 +30,14 @@ import PersonIcon from '@mui/icons-material/Person';
 import SecurityIcon from '@mui/icons-material/Security';
 
 export default function MyAccount() {
-  const { user } = useContext(AuthContext);
+  const user = useSelector(selectCurrentUser);
+  const [uploadAvatar] = useUploadAvatarMutation();
   const [selectedSection, setSelectedSection] = useState('overview');
-
   const menuItems = useMemo(() => [
     { id: 'overview', label: 'Overview', icon: <DashboardIcon /> },
     { id: 'personal', label: 'Personal Info', icon: <PersonIcon /> },
     { id: 'security', label: 'Security', icon: <SecurityIcon /> },
-  ], []); // Empty dependency array since these items never change
-
-  const handleMenuClick = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const headerOffset = 32;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-      setSelectedSection(sectionId);
-    }
-  };
+  ], []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -75,9 +62,29 @@ export default function MyAccount() {
     };
 
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initial check
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, [menuItems]);
+
+  // Early return if not authenticated
+  if (!user) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  const handleMenuClick = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const headerOffset = 32;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+      setSelectedSection(sectionId);
+    }
+  };
 
   const pageStyles = {
     container: {
@@ -254,20 +261,8 @@ export default function MyAccount() {
                         formData.append('avatar', file);
                         
                         try {
-                          const response = await axios.post('/api/auth/upload-avatar', formData, {
-                            headers: {
-                              'Content-Type': 'multipart/form-data',
-                              'Authorization': `Bearer ${localStorage.getItem('token')}`
-                            }
-                          });
-                          
-                          if (response.data.avatar) {
-                            // Update avatar in UI
-                            const avatarUrl = response.data.avatar;
-                            user.photoURL = avatarUrl;
-                            // Force re-render
-                            setSelectedSection(selectedSection);
-                          }
+                          await uploadAvatar(formData).unwrap();
+                          // Avatar update will be handled by redux state through invalidation
                         } catch (error) {
                           console.error('Error uploading avatar:', error);
                           alert('Failed to upload avatar. Please try again.');

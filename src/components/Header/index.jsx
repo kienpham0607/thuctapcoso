@@ -1,4 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from "react-router-dom";
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -6,13 +8,20 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Box from '@mui/material/Box';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import logo from '../../assets/logo.png';
-import { useNavigate } from "react-router-dom";
-import { AuthContext } from '../../contexts/AuthContext';
+import logo from '../../assets/logo.svg';
+import { selectCurrentUser } from '../../features/auth/authSlice';
+import { logout } from '../../features/auth/authSlice';
 
 export default function Header() {
   const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext);
+  const dispatch = useDispatch();
+  const user = useSelector(selectCurrentUser);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/');
+  };
+
   return (
     <AppBar
       position="static"
@@ -29,7 +38,7 @@ export default function Header() {
           <img
             src={logo}
             alt="logo"
-            style={{ width: 300, height: 68, marginRight: 8, cursor: 'pointer' }}
+            style={{ width: 200, height: 45, marginRight: 8, cursor: 'pointer', objectFit: 'contain' }}
             onClick={() => navigate("/")}
           />
         </Box>
@@ -57,9 +66,19 @@ export default function Header() {
           >
             Personal profile
           </Button>
-          <Button color="inherit" sx={{ textTransform: 'capitalize' }}>About</Button>
-          <Button color="inherit" sx={{ textTransform: 'capitalize' }} onClick={() => navigate("/contact")}>
-            Contract
+          <Button 
+            color="inherit" 
+            sx={{ textTransform: 'capitalize' }}
+            onClick={() => navigate("/about")}
+          >
+            About
+          </Button>
+          <Button 
+            color="inherit" 
+            sx={{ textTransform: 'capitalize' }} 
+            onClick={() => navigate("/contact")}
+          >
+            Contact
           </Button>
         </Box>
 
@@ -79,10 +98,7 @@ export default function Header() {
             </Typography>
             <Button
               variant="outlined"
-              onClick={() => {
-                logout();
-                navigate('/');
-              }}
+              onClick={handleLogout}
               sx={{
                 borderColor: '#16977D',
                 color: '#16977D',
@@ -101,7 +117,7 @@ export default function Header() {
         ) : (
           <Button
             variant="contained"
-            onClick={() => navigate("/admin/login")}
+            onClick={() => navigate("/login")}
             sx={{
               backgroundColor: '#16977D',
               borderRadius: 20,

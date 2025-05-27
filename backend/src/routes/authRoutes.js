@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 
-// POST /api/auth/register
+// POST /api/auth/register - Đăng ký tài khoản
 router.post('/register', authController.register);
 
-// POST /api/auth/login
+// POST /api/auth/login - Đăng nhập
 router.post('/login', authController.login);
 
-// POST /api/auth/upload-avatar
-router.post('/upload-avatar', authController.uploadAvatar);
+// GET /api/auth/users - Lấy danh sách người dùng
+router.get('/users', authController.getAllUsers);
 
 module.exports = router;

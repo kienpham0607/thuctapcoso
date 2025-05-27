@@ -53,33 +53,54 @@ export default function About() {
     <Box sx={{ 
       bgcolor: '#f8fafc',
       minHeight: 'calc(100vh - 64px)',
-      py: 8
+      display: 'flex',
+      flexDirection: 'column'
     }}>
-      <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
+      <Box sx={{ 
+        background: 'linear-gradient(135deg, #16977D 0%, #0d5c4d 100%)',
+        py: 4,
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 150%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)',
+        }
+      }}>
+        <Container maxWidth="lg">
           <Typography 
             variant="h3" 
-            component="h1" 
+            align="center" 
             sx={{ 
-              fontWeight: 700,
-              color: '#16977D',
-              mb: 2
+              color: 'white',
+              fontWeight: 800,
+              mb: 2,
+              textShadow: '0 2px 10px rgba(0,0,0,0.1)',
+              fontSize: { xs: '2rem', md: '2.75rem' }
             }}
           >
             About Us
           </Typography>
           <Typography 
-            variant="h5" 
+            variant="h6" 
+            align="center" 
             sx={{ 
-              color: '#475569',
-              maxWidth: '800px',
-              mx: 'auto'
+              color: 'rgba(255,255,255,0.9)',
+              maxWidth: 600,
+              mx: 'auto',
+              lineHeight: 1.6,
+              fontSize: { xs: '1rem', md: '1.125rem' }
             }}
           >
             GPA Calculator with Learning Materials Storage - A Comprehensive Learning Support Tool for Students
           </Typography>
-        </Box>
+        </Container>
+      </Box>
 
+      <Container maxWidth="lg" sx={{ py: 8 }}>
         <Grid container spacing={4}>
           {features.map((feature, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>

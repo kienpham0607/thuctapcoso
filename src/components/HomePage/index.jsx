@@ -1,5 +1,7 @@
-import React, { useContext } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { selectCurrentUser, logout } from '../../features/auth/authSlice';
 import logo from '../../assets/logo.png';
 import {
   Grid,
@@ -10,7 +12,6 @@ import {
   Typography,
   Button
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import Footer from '../Footer';
 
 import SchoolIcon from '@mui/icons-material/School';
@@ -22,7 +23,13 @@ import ContactMailIcon from '@mui/icons-material/ContactMail';
 
 function HomePage() {
   const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext);
+  const dispatch = useDispatch();
+  const user = useSelector(selectCurrentUser);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/');
+  };
 
   return (
     <Box sx={{
@@ -85,10 +92,7 @@ function HomePage() {
             </Button>
             <Button
               variant="outlined"
-              onClick={() => {
-                logout();
-                navigate('/');
-              }}
+              onClick={handleLogout}
               sx={{
                 borderColor: '#16977D',
                 color: '#16977D',
@@ -107,7 +111,7 @@ function HomePage() {
         ) : (
           <Button
             variant="contained"
-            onClick={() => navigate("/admin/login")}
+            onClick={() => navigate("/login")}
             sx={{
               backgroundColor: '#16977D',
               borderRadius: 20,
@@ -183,7 +187,7 @@ function HomePage() {
               { title: 'About Us', icon: InfoIcon, path: '/about' },
               { title: 'Contact', icon: ContactMailIcon, path: '/contact' }
             ].map((item, index) => (
-              <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex', justifyContent: 'center' }} key={index}>
+              <Grid item xs={12} sm={6} md={4} key={index}>
                 <Card 
                   elevation={0}
                   sx={{
@@ -272,7 +276,7 @@ function HomePage() {
                             transform: 'translateX(-50%) scaleX(0)',
                             transition: 'transform 0.3s ease',
                           },
-                          '$:hover::after': {
+                          '&:hover::after': {
                             transform: 'translateX(-50%) scaleX(1)'
                           }
                         }}

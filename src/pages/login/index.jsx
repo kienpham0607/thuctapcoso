@@ -1,9 +1,11 @@
-import React, { useState, useContext, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from 'react-redux';
+import { useLoginMutation } from '../../features/auth/authApiService';
+import { selectIsAuthenticated, selectAuthError, selectAuthLoading } from '../../features/auth/authSlice';
 import logo from "../../assets/logo.png";
-import { AuthContext } from "../../contexts/AuthContext";
 import { Link as RouterLink } from "react-router-dom";
-import googleIcon from "../../assets/google.png"; // Logo Google đa màu
+import googleIcon from "../../assets/google.png";
 import {
   Box,
   Typography,
@@ -15,6 +17,7 @@ import {
   InputAdornment,
   Fade,
   Zoom,
+  CircularProgress
 } from "@mui/material";
 import { Email, Lock, Visibility, VisibilityOff, ArrowBack } from "@mui/icons-material";
 
@@ -23,42 +26,48 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
   const navigate = useNavigate();
-  const location = useLocation();
-  const { login, user } = useContext(AuthContext);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const authError = useSelector(selectAuthError);
+  const isLoading = useSelector(selectAuthLoading);
+  const [login] = useLoginMutation();
 
-  // Chuyển về trang chủ sau khi đăng nhập thành công
-  const redirectPath = "/";
-
-  // Nếu đã đăng nhập, chuyển hướng đến trang yêu cầu
+  // Redirect if already authenticated
   useEffect(() => {
-    if (user) {
-      navigate(redirectPath);
+    if (isAuthenticated) {
+      navigate('/');
     }
-  }, [user, navigate, redirectPath]);
+  }, [isAuthenticated, navigate]);
 
-  const handleLogin = () => {
+  // Show error message if auth fails
+  useEffect(() => {
+    if (authError) {
+      setErrorMessage(authError);
+    }
+  }, [authError]);
+
+  const handleLogin = async () => {
     setErrorMessage("");
+    console.log('🔄 Starting login process...');
 
     if (!email || !password) {
+      console.log('❌ Validation failed: Email or password is empty');
       setErrorMessage("Vui lòng nhập email và mật khẩu");
       return;
     }
 
-    if (email === "admin@gmail.com" && password === "123") {
-      // Lưu thông tin user với role admin
-      const success = login({ email, role: "admin" });
+    console.log('📧 Attempting login with email:', email);
 
-      if (success) {
-        console.log("Đăng nhập thành công, chuyển hướng về trang chủ");
-        navigate(redirectPath);
-      }
-    } else {
-      setErrorMessage("Tài khoản hoặc mật khẩu không đúng!");
+    try {
+      const result = await login({ email, password }).unwrap();
+      console.log('✅ Login successful:', result);
+    } catch (error) {
+      console.error('❌ Login failed:', error);
+      setErrorMessage(error.data?.message || "Tài khoản hoặc mật khẩu không đúng!");
     }
   };
 
-  // xử lý bấm phím enter
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       handleLogin();
@@ -84,7 +93,7 @@ export default function LoginPage() {
         <ArrowBack />
       </IconButton>
 
-      {/* Cột trái */}
+      {/* Left column */}
       <Box
         sx={{
           flex: 1,
@@ -101,7 +110,7 @@ export default function LoginPage() {
         />
       </Box>
 
-      {/* Cột phải */}
+      {/* Right column */}
       <Box
         sx={{
           flex: 1,
@@ -113,137 +122,155 @@ export default function LoginPage() {
       >
         <Zoom in={true}>
           <Box
-          sx={{
-            width: 360,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          <Fade in={true} timeout={800}>
-          <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-            Sign in to continue
-          </Typography>
+            sx={{
+              width: 360,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
+            <Fade in={true} timeout={800}>
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+                Đăng nhập
+              </Typography>
             </Fade>
 
             <Fade in={true} timeout={1000}>
-
-          <TextField
-            label="Email"
-            variant="outlined"
-            fullWidth
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email />
-                </InputAdornment>
-              ),
-            }}
-          />
+              <TextField
+                label="Email"
+                variant="outlined"
+                fullWidth
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email />
+                    </InputAdornment>
+                  ),
+                }}
+                disabled={isLoading}
+                error={!!errorMessage}
+              />
             </Fade>
 
             <Fade in={true} timeout={1200}>
-
-          <TextField
-            label="Password"
-            variant="outlined"
-            fullWidth
-            type={showPass ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={handleKeyPress}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Lock />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setShowPass(!showPass)} edge="end">
-                    {showPass ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
+              <TextField
+                label="Mật khẩu"
+                variant="outlined"
+                fullWidth
+                type={showPass ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={handleKeyPress}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton 
+                        onClick={() => setShowPass(!showPass)} 
+                        edge="end"
+                        disabled={isLoading}
+                      >
+                        {showPass ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                disabled={isLoading}
+                error={!!errorMessage}
+              />
             </Fade>
 
-          {/* Hiển thị thông báo lỗi nếu có */}
-          {errorMessage && (
-            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-              {errorMessage}
-            </Typography>
-          )}
+            {/* Error message */}
+            {errorMessage && (
+              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                {errorMessage}
+              </Typography>
+            )}
 
-          <Fade in={true} timeout={1400}>
+            <Fade in={true} timeout={1400}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <FormControlLabel 
+                  control={<Checkbox disabled={isLoading} />} 
+                  label="Ghi nhớ đăng nhập" 
+                />
+                <Button
+                  component={RouterLink}
+                  to="/forgot-password"
+                  disabled={isLoading}
+                  sx={{ textTransform: "none" }}
+                >
+                  Quên mật khẩu?
+                </Button>
+              </Box>
+            </Fade>
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <FormControlLabel control={<Checkbox />} label="Remember me" />
-            <Button variant="text" size="small" sx={{ textTransform: "none" }}>
-              Forgot password
-            </Button>
+            <Fade in={true} timeout={1600}>
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                onClick={handleLogin}
+                disabled={isLoading}
+                sx={{
+                  mt: 2,
+                  py: 1.5,
+                  backgroundColor: "#16977D",
+                  "&:hover": {
+                    backgroundColor: "#12725f",
+                  },
+                }}
+              >
+                {isLoading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  "Đăng nhập"
+                )}
+              </Button>
+            </Fade>
+
+            <Fade in={true} timeout={1800}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  mt: 2,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  Chưa có tài khoản?{" "}
+                </Typography>
+                <Button
+                  component={RouterLink}
+                  to="/register"
+                  disabled={isLoading}
+                  sx={{
+                    textTransform: "none",
+                    color: "#16977D",
+                    "&:hover": {
+                      backgroundColor: "transparent",
+                      textDecoration: "underline",
+                    },
+                  }}
+                >
+                  Đăng ký ngay
+                </Button>
+              </Box>
+            </Fade>
           </Box>
-          </Fade>
-
-          <Fade in={true} timeout={1600}>
-
-          <Button
-            variant="contained"
-            onClick={handleLogin}
-            sx={{ textTransform: "none", fontWeight: "bold", mb: 1 }}
-          >
-            Sign In
-          </Button>
-          </Fade>
-
-          <Fade in={true} timeout={1800}>
-
-          <Button
-            variant="outlined"
-            sx={{
-              textTransform: "none",
-              fontWeight: "bold",
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              mb: 1,
-            }}
-          >
-            <img
-              src={googleIcon}
-              alt="Google"
-              style={{ width: 20, height: 20 }}
-            />
-            Sign in with Google
-          </Button>
-          </Fade>
-
-          <Fade in={true} timeout={2000}>
-
-          <Box sx={{ fontSize: "0.9rem" }}>
-            Don't have an account?{" "}
-            <Button
-              variant="text"
-              size="small"
-              sx={{ textTransform: "none", p: 0 }}
-              component={RouterLink}
-              to="/signup"
-            >
-              Signup
-            </Button>
-          </Box>
-          </Fade>
-        </Box>
         </Zoom>
       </Box>
     </Box>

@@ -41,7 +41,7 @@ export default function ContactPage() {
         <Box 
           sx={{ 
             background: 'linear-gradient(135deg, #16977D 0%, #0d5c4d 100%)',
-            pt: 8,
+            pt: 4,
             pb: 12,
             position: 'relative',
             overflow: 'hidden',

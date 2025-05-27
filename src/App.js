@@ -6,104 +6,83 @@ import CollegeGPA from "./pages/CollegeGPA";
 import PractiseTests from "./pages/PractiseTest";
 import LoginPage from "./pages/login";
 import SignUpPage from "./pages/signup";
-import { AuthProvider } from "./contexts/AuthContext";
 import ContactPage from './pages/Contact';
 import PersonalProfile from './pages/PersonalProfile';
 import About from './pages/About';
 import MyAccount from './pages/MyAccount';
 import TestList from './components/TestList';
 import TestQuestions from './components/TestQuestions';
+import PrivateRoute from './utils/PrivateRoute';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div>
-          <Routes>
-            {/* Hide header on login and signup pages */}
-            <Route
-              path="/"
-              element={<HomePage />}
-            />
-            <Route
-              path="/about"
-              element={
-                <>
-                  <Header />
-                  <About />
-                </>
-              }
-            />
-            <Route
-              path="/college-gpa"
-              element={
-                <>
-                  <Header />
-                  <CollegeGPA />
-                </>
-              }
-            />
-            <Route
-              path="/contact"
-              element={
-                <>
-                  <Header />
-                  <ContactPage />
-                </>
-              }
-            />
-            {/* Login and Signup routes without header */}
-            <Route path="/admin/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
-            <Route
-              path="/Personal-profile"
-              element={
-                <>
-                  <Header />
-                  <PersonalProfile />
-                </>
-              }
-            />
-            <Route
-              path="/practice-test"
-              element={
-                <>
-                  <Header />
-                  <PractiseTests />
-                </>
-              }
-            />
-            <Route
-              path="/practice/:subject"
-              element={
-                <>
-                  <Header />
-                  <TestList />
-                </>
-              }
-            />
-            <Route
-              path="/practice/:subject/test/:testId"
-              element={
-                <>
-                  <Header />
-                  <TestQuestions />
-                </>
-              }
-            />
-            <Route
-              path="/my-account"
-              element={
-                <>
-                  <Header />
-                  <MyAccount />
-                </>
-              }
-            />
-          </Routes>
-        </div>
-      </BrowserRouter>
-    </AuthProvider>
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<><Header /><About /></>} />
+        <Route path="/contact" element={<><Header /><ContactPage /></>} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/register" element={<SignUpPage />} />
+
+        {/* Protected routes */}
+        <Route
+          path="/Personal-profile"
+          element={
+            <PrivateRoute>
+              <Header />
+              <PersonalProfile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/college-gpa"
+          element={
+            <PrivateRoute>
+              <Header />
+              <CollegeGPA />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/practice-test"
+          element={
+            <PrivateRoute>
+              <Header />
+              <PractiseTests />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/practice/:subject"
+          element={
+            <PrivateRoute>
+              <Header />
+              <TestList />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/practice/:subject/test/:testId"
+          element={
+            <PrivateRoute>
+              <Header />
+              <TestQuestions />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/my-account"
+          element={
+            <PrivateRoute>
+              <Header />
+              <MyAccount />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
