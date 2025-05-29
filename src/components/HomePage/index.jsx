@@ -13,6 +13,7 @@ import {
   Button
 } from '@mui/material';
 import Footer from '../Footer';
+import UserMenu from '../UserMenu';
 
 import SchoolIcon from '@mui/icons-material/School';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -29,6 +30,13 @@ function HomePage() {
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
+  };
+
+  const handleLogin = () => {
+    console.log('🔑 HomePage: Is authenticated before navigating to login:', user ? true : false);
+    console.log('🔄 HomePage: Attempting to navigate to login page...');
+    navigate('/login');
+    console.log('✅ HomePage: Navigation completed');
   };
 
   return (
@@ -75,43 +83,11 @@ function HomePage() {
         gap: 2
       }}>
         {user ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              onClick={() => navigate("/my-account")}
-              sx={{
-                color: '#16977D',
-                textTransform: 'none',
-                '&:hover': {
-                  backgroundColor: 'rgba(22, 151, 125, 0.04)'
-                },
-              }}
-            >
-              <Typography sx={{ color: '#16977D' }}>
-                {user.email}
-              </Typography>
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={handleLogout}
-              sx={{
-                borderColor: '#16977D',
-                color: '#16977D',
-                borderRadius: 20,
-                height: 30,
-                textTransform: 'none',
-                '&:hover': {
-                  borderColor: '#12725f',
-                  backgroundColor: 'rgba(18, 114, 95, 0.04)'
-                },
-              }}
-            >
-              Log Out
-            </Button>
-          </Box>
+          <UserMenu />
         ) : (
           <Button
             variant="contained"
-            onClick={() => navigate("/login")}
+            onClick={handleLogin}
             sx={{
               backgroundColor: '#16977D',
               borderRadius: 20,

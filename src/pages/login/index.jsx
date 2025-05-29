@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useSelector } from 'react-redux';
+import { useNavigate, Link as RouterLink, useSearchParams } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
 import { useLoginMutation } from '../../features/auth/authApiService';
 import { selectIsAuthenticated, selectAuthError, selectAuthLoading } from '../../features/auth/authSlice';
 import logo from "../../assets/logo.png";
-import { Link as RouterLink } from "react-router-dom";
-import googleIcon from "../../assets/google.png";
 import {
   Box,
   Typography,
@@ -17,262 +15,227 @@ import {
   InputAdornment,
   Fade,
   Zoom,
-  CircularProgress
+  CircularProgress,
+  Container,
+  Paper
 } from "@mui/material";
-import { Email, Lock, Visibility, VisibilityOff, ArrowBack } from "@mui/icons-material";
+import { Email as EmailIcon, Lock as LockIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon, ArrowBack as ArrowBackIcon } from "@mui/icons-material";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/";
+
+  const dispatch = useDispatch();
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const authError = useSelector(selectAuthError);
   const isLoading = useSelector(selectAuthLoading);
-  const [login] = useLoginMutation();
 
-  // Redirect if already authenticated
+  const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState(null);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    rememberMe: false,
+  });
+
+  const [login, { isLoading: loginLoading, error: loginError }] = useLoginMutation();
+
   useEffect(() => {
+    if (loginError) {
+      setLocalError(loginError?.data?.message || loginError?.message || 'Đăng nhập thất bại từ API');
+      console.error('❌ LoginPage: RTK Query Login Error:', loginError);
+    } else if (authError) {
+      setLocalError(authError);
+      console.log('🔍 LoginPage: Auth Error from slice:', authError);
+    } else {
+      setLocalError(null);
+    }
+  }, [loginError, authError]);
+
+  useEffect(() => {
+    console.log('🔍 LoginPage: Checking authentication status:', isAuthenticated);
     if (isAuthenticated) {
-      navigate('/');
+      console.log('✅ LoginPage: User is authenticated, redirecting to:', redirectTo);
+      navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, redirectTo]);
 
-  // Show error message if auth fails
-  useEffect(() => {
-    if (authError) {
-      setErrorMessage(authError);
-    }
-  }, [authError]);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (localError) setLocalError(null);
+  };
 
-  const handleLogin = async () => {
-    setErrorMessage("");
-    console.log('🔄 Starting login process...');
+  const handleCheckboxChange = (event) => {
+    setFormData((prev) => ({
+      ...prev,
+      rememberMe: event.target.checked,
+    }));
+  };
 
-    if (!email || !password) {
-      console.log('❌ Validation failed: Email or password is empty');
-      setErrorMessage("Vui lòng nhập email và mật khẩu");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLocalError(null);
+    console.log('🔄 LoginPage: Starting login process...');
+
+    if (!formData.email || !formData.password) {
+      const errorMsg = "Vui lòng nhập email và mật khẩu.";
+      setLocalError(errorMsg);
+      console.log('❌ LoginPage: Validation failed:', errorMsg);
       return;
     }
 
-    console.log('📧 Attempting login with email:', email);
-
     try {
-      const result = await login({ email, password }).unwrap();
-      console.log('✅ Login successful:', result);
+      console.log('�� LoginPage: Attempting login for:', formData.email);
+      const result = await login({ email: formData.email, password: formData.password }).unwrap();
+
+      console.log('✅ LoginPage: Login mutation called, result:', result);
+
     } catch (error) {
-      console.error('❌ Login failed:', error);
-      setErrorMessage(error.data?.message || "Tài khoản hoặc mật khẩu không đúng!");
+      console.error("❌ LoginPage: Error caught during mutation call:", error);
     }
   };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      handleLogin();
+      handleSubmit(e);
     }
   };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", position: "relative" }}>
-      <IconButton
-        component={RouterLink}
-        to="/"
+    <Box sx={{
+      display: "flex",
+      minHeight: "100vh",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#f0f4f8",
+      p: 3
+    }}>
+      <Paper
+        elevation={6}
         sx={{
-          position: "absolute",
-          top: 20,
-          left: 20,
-          zIndex: 1,
-          bgcolor: "white",
-          "&:hover": {
-            bgcolor: "rgba(255,255,255,0.9)",
-          },
+          width: 400,
+          p: 4,
+          borderRadius: 2,
+          textAlign: "center",
         }}
       >
-        <ArrowBack />
-      </IconButton>
-
-      {/* Left column */}
-      <Box
-        sx={{
-          flex: 1,
-          backgroundColor: "#fffff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <img
-          src={logo}
-          alt="logo"
-          style={{ maxWidth: "60%", height: "auto" }}
-        />
-      </Box>
-
-      {/* Right column */}
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#fff",
-        }}
-      >
-        <Zoom in={true}>
-          <Box
-            sx={{
-              width: 360,
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-            }}
-          >
-            <Fade in={true} timeout={800}>
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-                Đăng nhập
-              </Typography>
-            </Fade>
-
-            <Fade in={true} timeout={1000}>
-              <TextField
-                label="Email"
-                variant="outlined"
-                fullWidth
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Email />
-                    </InputAdornment>
-                  ),
-                }}
-                disabled={isLoading}
-                error={!!errorMessage}
-              />
-            </Fade>
-
-            <Fade in={true} timeout={1200}>
-              <TextField
-                label="Mật khẩu"
-                variant="outlined"
-                fullWidth
-                type={showPass ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={handleKeyPress}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Lock />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton 
-                        onClick={() => setShowPass(!showPass)} 
-                        edge="end"
-                        disabled={isLoading}
-                      >
-                        {showPass ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                disabled={isLoading}
-                error={!!errorMessage}
-              />
-            </Fade>
-
-            {/* Error message */}
-            {errorMessage && (
-              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                {errorMessage}
-              </Typography>
-            )}
-
-            <Fade in={true} timeout={1400}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <FormControlLabel 
-                  control={<Checkbox disabled={isLoading} />} 
-                  label="Ghi nhớ đăng nhập" 
-                />
-                <Button
-                  component={RouterLink}
-                  to="/forgot-password"
-                  disabled={isLoading}
-                  sx={{ textTransform: "none" }}
-                >
-                  Quên mật khẩu?
-                </Button>
-              </Box>
-            </Fade>
-
-            <Fade in={true} timeout={1600}>
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                onClick={handleLogin}
-                disabled={isLoading}
-                sx={{
-                  mt: 2,
-                  py: 1.5,
-                  backgroundColor: "#16977D",
-                  "&:hover": {
-                    backgroundColor: "#12725f",
-                  },
-                }}
-              >
-                {isLoading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  "Đăng nhập"
-                )}
-              </Button>
-            </Fade>
-
-            <Fade in={true} timeout={1800}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  mt: 2,
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  Chưa có tài khoản?{" "}
-                </Typography>
-                <Button
-                  component={RouterLink}
-                  to="/register"
-                  disabled={isLoading}
-                  sx={{
-                    textTransform: "none",
-                    color: "#16977D",
-                    "&:hover": {
-                      backgroundColor: "transparent",
-                      textDecoration: "underline",
-                    },
-                  }}
-                >
-                  Đăng ký ngay
-                </Button>
-              </Box>
-            </Fade>
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ textAlign: 'left', mb: 2 }}>
+            <IconButton component={RouterLink} to="/">
+              <ArrowBackIcon />
+            </IconButton>
           </Box>
-        </Zoom>
-      </Box>
+          <img
+            src={logo}
+            alt="logo"
+            style={{ maxWidth: "100px", height: "auto", margin: "0 auto 16px auto", display: 'block' }}
+          />
+          <Typography variant="h5" component="h1" fontWeight="bold" sx={{ mb: 1 }}>
+            Đăng nhập
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Hoặc <RouterLink to="/signup" style={{ color: '#16977D', textDecoration: 'none' }}>đăng ký tài khoản mới</RouterLink>
+          </Typography>
+        </Box>
+
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, width: '100%' }}>
+          {localError && (
+            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+              {localError}
+            </Typography>
+          )}
+          <TextField
+            margin="normal"
+            fullWidth
+            id="email"
+            label="Email"
+            name="email"
+            autoComplete="email"
+            autoFocus
+            value={formData.email}
+            onChange={handleChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <EmailIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+            error={!!localError}
+          />
+          <TextField
+            margin="normal"
+            fullWidth
+            name="password"
+            label="Mật khẩu"
+            type={showPassword ? "text" : "password"}
+            id="password"
+            autoComplete="current-password"
+            value={formData.password}
+            onChange={handleChange}
+            onKeyPress={handleKeyPress}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <LockIcon color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                    {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            error={!!localError}
+          />
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.rememberMe}
+                  onChange={handleCheckboxChange}
+                  color="primary"
+                />
+              }
+              label="Ghi nhớ đăng nhập"
+            />
+            <RouterLink to="/auth/forgot-password" style={{ textDecoration: 'none' }}>
+              <Typography variant="body2" color="primary" sx={{'&:hover': { textDecoration: 'underline' }}}>Quên mật khẩu?</Typography>
+            </RouterLink>
+          </Box>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{
+              mt: 3,
+              mb: 2,
+              backgroundColor: "#16977D",
+              "&:hover": {
+                backgroundColor: "#12725f",
+              },
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? <CircularProgress size={24} color="inherit" /> : "Đăng nhập"}
+          </Button>
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Chưa có tài khoản?{' '}
+              <RouterLink to="/signup" style={{ color: '#16977D', textDecoration: 'none' }}>
+                Đăng ký ngay
+              </RouterLink>
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
     </Box>
   );
 }

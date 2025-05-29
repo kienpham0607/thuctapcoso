@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GpaProgressCircle from '../../components/GpaProgressCircle';
 import GPAChart from '../../components/GPAChart';
@@ -21,7 +21,8 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  CircularProgress
 } from '@mui/material';
 import { Snackbar, Alert } from '@mui/material';
 import {
@@ -33,6 +34,10 @@ import {
   RadioButtonChecked as RadioButtonCheckedIcon
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { getUserProfileApi, updateUserProfileApi } from '../../apis/authApi'; // Import API calls
+import { getGpaPerformanceApi, createGpaEntryApi, getUserGpaEntriesApi, updateGpaEntryApi, deleteGpaEntryApi } from '../../apis/gpaApi'; // Import GPA API calls
+import { useSelector, useDispatch } from 'react-redux';
+import { selectIsAuthenticated, logout } from '../../features/auth/authSlice';
 
 const theme = createTheme({
   palette: {
@@ -115,15 +120,184 @@ const guideFeatures = [
   }
 ];
 
+// Helper function to convert score10 to gpa4 (matching backend logic if possible)
+const score10ToGpa4 = (score10) => {
+  if (score10 === '' || isNaN(score10)) return 0;
+  const score = parseFloat(score10);
+  if (score >= 9) return 4.0;
+  if (score >= 8) return 3.5;
+  if (score >= 7) return 3.0;
+  if (score >= 6) return 2.5;
+  if (score >= 5) return 2.0;
+  if (score >= 4) return 1.5;
+  return 0;
+};
+
 function PersonalProfile() {
   const navigate = useNavigate();
+  const isAuthenticated = useSelector(selectIsAuthenticated); // Get authentication status
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [gpaPerformanceData, setGpaPerformanceData] = useState([]); // State for GPA performance data
+
+  const [profileData, setProfileData] = useState(null);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+  });
+
+  const dispatch = useDispatch();
+
+  // Function to fetch GPA performance data for the chart
+  const fetchGpaPerformance = async () => {
+    try {
+      console.log('🔄 Fetching GPA performance data...');
+      const response = await getGpaPerformanceApi();
+
+      // Check for 401 specifically
+      if (response && response.status === 401) {
+        console.error('❌ Fetching GPA performance data failed: Unauthorized. Token expired?');
+        setSnackbarMessage('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+        dispatch(logout());
+        return;
+      }
+
+      if (response.success && Array.isArray(response.data)) {
+        console.log('✅ GPA performance data fetched:', response.data);
+        setGpaPerformanceData(response.data);
+      } else {
+        console.error('❌ Failed to fetch GPA performance data:', response.message || 'Invalid response format');
+        setSnackbarMessage('Lỗi khi tải dữ liệu biểu đồ GPA: ' + (response.message || 'Không rõ lỗi'));
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+      }
+    } catch (error) {
+      console.error('❌ Error calling fetchGpaPerformance:', error);
+      setSnackbarMessage('Lỗi kết nối khi tải dữ liệu biểu đồ GPA: ' + error.message);
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+    } finally {
+      // This fetch doesn't block main loading state, handle separately if needed
+    }
+  };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await getUserProfileApi();
+        if (response.success) {
+          setProfileData(response.data);
+          setFormData({
+            fullName: response.data.fullName || '',
+            email: response.data.email || '',
+          });
+        } else {
+          setSnackbarMessage('Lỗi khi tải hồ sơ: ' + (response.message || 'Không rõ lỗi'));
+          setSnackbarSeverity('error');
+          setOpenSnackbar(true);
+        }
+      } catch (error) {
+        setSnackbarMessage('Lỗi kết nối khi tải hồ sơ: ' + error.message);
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+        // If 401 error, dispatch logout
+        if (error.message && error.message.includes('401')) {
+          dispatch(logout());
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchGpaEntries = async () => {
+      try {
+        console.log('🔄 Fetching GPA entries...');
+        // Assuming getUserGpaEntriesApi returns { success: boolean, data: GpaEntry[] }
+        const response = await getUserGpaEntriesApi();
+
+        // Check for 401 specifically
+        if (response && response.status === 401) {
+          console.error('❌ Fetching GPA entries failed: Unauthorized. Token expired?');
+          setSnackbarMessage('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          setSnackbarSeverity('error');
+          setOpenSnackbar(true);
+          dispatch(logout()); // Dispatch logout
+          setLoading(false);
+          return; // Stop process
+        }
+
+        if (response.success && Array.isArray(response.data)) {
+          console.log('✅ GPA entries fetched:', response.data);
+          // Transform backend data into frontend state structure
+          const groupedBySemester = response.data.reduce((acc, entry) => {
+            const semesterName = entry.semester || 'Unnamed Semester';
+            if (!acc[semesterName]) {
+              acc[semesterName] = {
+                id: `semester-${semesterName.replace(/\s+/g, '-').toLowerCase()}`, // Generate stable ID
+                title: semesterName,
+                gpa: 0,
+                courses: []
+              };
+            }
+            acc[semesterName].courses.push({
+              ...entry,
+              score10: String(entry.score10), // Ensure score10 is string for input value
+              status: 'existing' // Mark as existing
+            });
+            return acc;
+          }, {});
+
+          // Convert grouped data back to array and calculate semester GPAs
+          const semestersArray = Object.values(groupedBySemester).map(semester => ({
+            ...semester,
+            gpa: calculateSemesterGPA(semester.courses) // Calculate GPA for the semester
+          })).sort((a, b) => a.title.localeCompare(b.title)); // Sort semesters alphabetically
+
+          setSemesters(semestersArray);
+
+        } else {
+          console.error('❌ Failed to fetch GPA entries:', response.message || 'Invalid response format');
+          setSnackbarMessage('Lỗi khi tải dữ liệu điểm: ' + (response.message || 'Không rõ lỗi'));
+          setSnackbarSeverity('error');
+          setOpenSnackbar(true);
+        }
+      } catch (error) {
+        console.error('❌ Error calling fetchGpaEntries:', error);
+        setSnackbarMessage('Lỗi kết nối khi tải dữ liệu điểm: ' + error.message);
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+      } finally {
+        // Set loading to false only after all initial fetches are done
+        // setLoading(false); // This will be moved below
+      }
+    };
+
+    // Fetch profile, GPA performance, and GPA entries on mount or auth change
+    const loadInitialData = async () => {
+      setLoading(true);
+      await fetchProfile();
+      await fetchGpaPerformance(); // Call the now externally defined function
+      await fetchGpaEntries();
+      setLoading(false);
+    };
+
+    loadInitialData();
+
+  }, [isAuthenticated]); // Depend on isAuthenticated, fetchGpaPerformance (add if necessary)
+
   const [semesters, setSemesters] = useState(() => {
     const savedData = localStorage.getItem('semestersData');
-    return savedData ? JSON.parse(savedData) : [];
+    // Update initial state structure to use score10
+    return savedData ? JSON.parse(savedData).map(s => ({
+      ...s,
+      courses: s.courses.map(c => ({ ...c, score10: c.grade || '' })) // Assuming old data used 'grade'
+    })) : [];
   });
 
   const deleteSemester = (semesterId) => {
@@ -134,10 +308,11 @@ function PersonalProfile() {
     const updatedSemesters = semesters.map(semester => {
       if (semester.id === semesterId) {
         const newCourse = {
-          id: semester.courses.length + 1,
+          id: Date.now(), // Use timestamp for unique ID
           courseName: '',
           credits: '',
-          grade: '',
+          score10: '', // Use score10
+          status: 'new' // Mark as new
         };
         return {
           ...semester,
@@ -165,7 +340,12 @@ function PersonalProfile() {
       if (semester.id === semesterId) {
         return {
           ...semester,
-          courses: semester.courses.filter(course => course.id !== courseId)
+          courses: semester.courses.map(course => {
+            if (course.id === courseId) {
+              return { ...course, status: 'deleted' }; // Mark as deleted
+            }
+            return course;
+          })
         };
       }
       return semester;
@@ -173,26 +353,17 @@ function PersonalProfile() {
     setSemesters(updatedSemesters);
   };
 
-  const gradeToPoints = (grade) => {
-    const points = {
-      'A+': 4.0, 'A': 4.0, 'A-': 3.7,
-      'B+': 3.3, 'B': 3.0, 'B-': 2.7,
-      'C+': 2.3, 'C': 2.0, 'C-': 1.7,
-      'D+': 1.3, 'D': 1.0, 'D-': 0.7,
-      'F': 0.0
-    };
-    return points[grade] || 0;
-  };
-
+  // Update GPA calculation functions to use score10
   const calculateSemesterGPA = (courses) => {
     let totalPoints = 0;
     let totalCredits = 0;
 
     courses.forEach(course => {
-      if (course.credits && course.grade) {
+      // Use score10 and convert to gpa4 for calculation
+      if (course.credits && course.score10 !== '' && !isNaN(course.credits) && !isNaN(course.score10)) {
         const credits = parseFloat(course.credits);
-        const points = gradeToPoints(course.grade);
-        totalPoints += credits * points;
+        const gpa4 = score10ToGpa4(course.score10);
+        totalPoints += credits * gpa4;
         totalCredits += credits;
       }
     });
@@ -205,14 +376,14 @@ function PersonalProfile() {
       if (semester.id === semesterId) {
         const updatedCourses = semester.courses.map(course => {
           if (course.id === courseId) {
-            return { ...course, credits: newCredits };
+            return { ...course, credits: newCredits, status: course.status === 'existing' ? 'modified' : course.status };
           }
           return course;
         });
         return {
           ...semester,
           courses: updatedCourses,
-          gpa: calculateSemesterGPA(updatedCourses)
+          gpa: calculateSemesterGPA(updatedCourses) // Recalculate semester GPA
         };
       }
       return semester;
@@ -220,19 +391,20 @@ function PersonalProfile() {
     setSemesters(updatedSemesters);
   };
 
-  const handleGradeChange = (semesterId, courseId, newGrade) => {
+  // Update handler for score10 change
+  const handleScore10Change = (semesterId, courseId, newScore10) => {
     const updatedSemesters = semesters.map(semester => {
       if (semester.id === semesterId) {
         const updatedCourses = semester.courses.map(course => {
           if (course.id === courseId) {
-            return { ...course, grade: newGrade };
+            return { ...course, score10: newScore10, status: course.status === 'existing' ? 'modified' : course.status };
           }
           return course;
         });
         return {
           ...semester,
           courses: updatedCourses,
-          gpa: calculateSemesterGPA(updatedCourses)
+          gpa: calculateSemesterGPA(updatedCourses) // Recalculate semester GPA
         };
       }
       return semester;
@@ -246,16 +418,234 @@ function PersonalProfile() {
 
     semesters.forEach(semester => {
       semester.courses.forEach(course => {
-        if (course.credits && course.grade) {
+        // Use score10 and convert to gpa4 for calculation
+        if (course.credits && course.score10 !== '' && !isNaN(course.credits) && !isNaN(course.score10)) {
           const credits = parseFloat(course.credits);
-          const points = gradeToPoints(course.grade);
-          totalPoints += credits * points;
+          const gpa4 = score10ToGpa4(course.score10);
+          totalPoints += credits * gpa4;
           totalCredits += credits;
         }
       });
     });
 
     return totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      setSaving(true);
+
+      // 1. Save User Profile Data (if needed)
+      const updateProfileData = { ...formData };
+      console.log('🔄 Saving profile changes...', updateProfileData);
+      const profileResponse = await updateUserProfileApi(updateProfileData);
+      
+      // Check for 401 specifically after profile update
+      if (profileResponse && profileResponse.status === 401) {
+        console.error('❌ Profile update failed: Unauthorized. Token expired?');
+        setSnackbarMessage('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+        dispatch(logout()); // Dispatch logout
+        setSaving(false);
+        return; // Stop process
+      }
+
+      if (!profileResponse.success) {
+        // Handle other profile update errors
+        setSnackbarMessage('Lỗi khi cập nhật hồ sơ: ' + (profileResponse.message || 'Không rõ lỗi'));
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+        setSaving(false);
+        return; // Stop if profile update fails
+      }
+
+      // 2. Process GPA Entries based on status
+      console.log('🔄 Processing GPA entries...');
+      const semestersToSave = []; // To build the next state after saving
+
+      for (const semester of semesters) {
+        const updatedCourses = [];
+
+        for (const course of semester.courses) {
+          if (course.status === 'deleted') {
+            if (course._id) {
+              // Call DELETE API for existing entries marked as deleted
+              try {
+                console.log(`Deleting GPA entry with ID: ${course._id}`);
+                const deleteResponse = await deleteGpaEntryApi(course._id);
+                if (deleteResponse && deleteResponse.status === 401) {
+                  console.error(`❌ Deleting GPA entry ${course.courseName} failed: Unauthorized. Token expired?`);
+                  setSnackbarMessage('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                  setSnackbarSeverity('error');
+                  setOpenSnackbar(true);
+                  dispatch(logout());
+                  setSaving(false);
+                  return;
+                }
+                if (!deleteResponse.success) {
+                  console.error(`❌ Failed to delete GPA entry ${course.courseName}: ${deleteResponse.message}`);
+                  setSnackbarMessage(`Lỗi khi xóa môn ${course.courseName}: ${deleteResponse.message || 'Không rõ lỗi'}`);
+                  setSnackbarSeverity('error');
+                  setOpenSnackbar(true);
+                } else {
+                  console.log(`✅ GPA entry deleted: ${course.courseName}`);
+                  // Don't add to updatedCourses - it's deleted
+                }
+              } catch (error) {
+                console.error(`❌ Error calling deleteGpaEntryApi for ${course.courseName}:`, error);
+                setSnackbarMessage(`Lỗi kết nối khi xóa môn ${course.courseName}: ${error.message}`);
+                setSnackbarSeverity('error');
+                setOpenSnackbar(true);
+              }
+            } else {
+              // If status is 'deleted' but no _id, it was a new entry deleted before saving. Just drop it.
+              console.log(`Dropping new GPA entry marked for deletion: ${course.courseName}`);
+              // Don't add to updatedCourses
+            }
+          } else if (course.status === 'new') {
+            // Call POST API for new entries
+            if (!course.courseName || course.credits === '' || course.score10 === '' || isNaN(parseFloat(course.credits)) || isNaN(parseFloat(course.score10))) {
+              console.warn(`Skipping incomplete new course: ${course.courseName || 'Unnamed Course'}`);
+              continue; // Skip incomplete new entries
+            }
+
+            const gpaEntryData = {
+              courseName: course.courseName,
+              score10: parseFloat(course.score10),
+              credits: parseFloat(course.credits),
+              semester: semester.title,
+            };
+            try {
+              console.log(`Creating new GPA entry: ${course.courseName}`, gpaEntryData);
+              const gpaResponse = await createGpaEntryApi(gpaEntryData);
+
+              if (gpaResponse && gpaResponse.status === 401) {
+                console.error(`❌ Creating GPA entry ${course.courseName} failed: Unauthorized. Token expired?`);
+                setSnackbarMessage('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                setSnackbarSeverity('error');
+                setOpenSnackbar(true);
+                dispatch(logout());
+                setSaving(false);
+                return;
+              }
+
+              if (gpaResponse.success && gpaResponse.data) {
+                console.log('✅ GPA entry created:', gpaResponse.data);
+                // Add to updatedCourses with new _id and status 'existing'
+                updatedCourses.push({ ...course, _id: gpaResponse.data._id, status: 'existing' });
+              } else {
+                console.error(`❌ Failed to create GPA entry ${course.courseName}: ${gpaResponse.message}`);
+                setSnackbarMessage(`Lỗi khi lưu môn ${course.courseName}: ${gpaResponse.message || 'Không rõ lỗi'}`);
+                setSnackbarSeverity('error');
+                setOpenSnackbar(true);
+                // Keep the course in state with original status
+                updatedCourses.push(course);
+              }
+            } catch (error) {
+              console.error(`❌ Error calling createGpaEntryApi for ${course.courseName}:`, error);
+              setSnackbarMessage(`Lỗi kết nối khi lưu môn ${course.courseName}: ${error.message}`);
+              setSnackbarSeverity('error');
+              setOpenSnackbar(true);
+              // Keep the course in state with original status
+              updatedCourses.push(course);
+            }
+          } else if (course.status === 'modified') {
+            // Call PUT API for modified entries
+            if (!course._id) {
+              console.warn(`Skipping modified course without ID: ${course.courseName}`);
+              updatedCourses.push(course); // Keep in state if no ID
+              continue;
+            }
+            if (!course.courseName || course.credits === '' || course.score10 === '' || isNaN(parseFloat(course.credits)) || isNaN(parseFloat(course.score10))) {
+              console.warn(`Skipping incomplete modified course: ${course.courseName || 'Unnamed Course'}`);
+              updatedCourses.push(course); // Keep in state if incomplete
+              continue;
+            }
+
+            const gpaEntryData = {
+              courseName: course.courseName,
+              score10: parseFloat(course.score10),
+              credits: parseFloat(course.credits),
+              semester: semester.title,
+            };
+            try {
+              console.log(`Updating GPA entry with ID: ${course._id}`, gpaEntryData);
+              // Assuming updateGpaEntryApi is PUT /api/gpa/:id
+              const gpaResponse = await updateGpaEntryApi(course._id, gpaEntryData);
+
+              if (gpaResponse && gpaResponse.status === 401) {
+                console.error(`❌ Updating GPA entry ${course.courseName} failed: Unauthorized. Token expired?`);
+                setSnackbarMessage('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                setSnackbarSeverity('error');
+                setOpenSnackbar(true);
+                dispatch(logout());
+                setSaving(false);
+                return;
+              }
+
+              if (gpaResponse.success && gpaResponse.data) {
+                console.log('✅ GPA entry updated:', gpaResponse.data);
+                // Add to updatedCourses with status 'existing'
+                updatedCourses.push({ ...course, status: 'existing' });
+              } else {
+                console.error(`❌ Failed to update GPA entry ${course.courseName}: ${gpaResponse.message}`);
+                setSnackbarMessage(`Lỗi khi cập nhật môn ${course.courseName}: ${gpaResponse.message || 'Không rõ lỗi'}`);
+                setSnackbarSeverity('error');
+                setOpenSnackbar(true);
+                // Keep the course in state with original status
+                updatedCourses.push(course);
+              }
+            } catch (error) {
+              console.error(`❌ Error calling updateGpaEntryApi for ${course.courseName}:`, error);
+              setSnackbarMessage(`Lỗi kết nối khi cập nhật môn ${course.courseName}: ${error.message}`);
+              setSnackbarSeverity('error');
+              setOpenSnackbar(true);
+              // Keep the course in state with original status
+              updatedCourses.push(course);
+            }
+          } else {
+            // Status is 'existing' - no action needed for saving
+            updatedCourses.push(course); // Keep in the next state
+          }
+        }
+
+        // Only add the semester to the next state if it still has courses after processing deletions
+        if (updatedCourses.length > 0) {
+          // Recalculate GPA for the semester based on the updated courses list
+          const updatedSemester = { ...semester, courses: updatedCourses, gpa: calculateSemesterGPA(updatedCourses) };
+          semestersToSave.push(updatedSemester);
+        }
+      }
+
+      // Update the frontend state with the results of the save operation
+      setSemesters(semestersToSave);
+
+      setSnackbarMessage('Đã lưu thay đổi!');
+      setSnackbarSeverity('success');
+      setOpenSnackbar(true);
+
+      // After saving, refetch the performance data to update the chart
+      fetchGpaPerformance();
+
+    } catch (error) {
+      // This catch will handle network errors or other unexpected issues not returning 401 status
+      console.error('❌ Error in handleSaveChanges (general catch):', error);
+      setSnackbarMessage('Lỗi chung khi lưu thay đổi: ' + error.message);
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -290,6 +680,7 @@ function PersonalProfile() {
                   <GPAChart
                     semesters={semesters}
                     calculateOverallGPA={calculateOverallGPA}
+                    performanceData={gpaPerformanceData}
                   />
                 </Box>
               </Zoom>
@@ -329,7 +720,9 @@ function PersonalProfile() {
                       </IconButton>
                     </Box>
 
-                    {semester.courses.map((course) => (
+                    {semester.courses
+                        .filter(course => course.status !== 'deleted') // Filter out deleted courses for rendering
+                        .map((course) => (
                       <Fade in={true} key={course.id}>
                         <Box 
                           display="flex" 
@@ -380,12 +773,12 @@ function PersonalProfile() {
                             }}
                           >
                             <Select
-                              value={course.grade}
-                              onChange={(e) => handleGradeChange(semester.id, course.id, e.target.value)}
+                              value={course.score10}
+                              onChange={(e) => handleScore10Change(semester.id, course.id, e.target.value)}
                               displayEmpty
                               renderValue={(selected) => {
                                 if (selected === '') {
-                                  return <Typography color="text.secondary">Grade</Typography>;
+                                  return <Typography color="text.secondary">Score 10</Typography>;
                                 }
                                 return selected;
                               }}
@@ -462,18 +855,8 @@ function PersonalProfile() {
                   variant="contained"
                   color="success"
                   size="large"
-                  onClick={() => {
-                    try {
-                      localStorage.setItem('semestersData', JSON.stringify(semesters));
-                      setSnackbarMessage('Data saved successfully!');
-                      setSnackbarSeverity('success');
-                      setOpenSnackbar(true);
-                    } catch (error) {
-                      setSnackbarMessage('Failed to save data. Please try again.');
-                      setSnackbarSeverity('error');
-                      setOpenSnackbar(true);
-                    }
-                  }}
+                  onClick={handleSaveChanges}
+                  disabled={saving || loading}
                   sx={{
                     bgcolor: '#16977D',
                     '&:hover': {
@@ -481,7 +864,7 @@ function PersonalProfile() {
                     }
                   }}
                 >
-                  Save Changes
+                  {saving ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
                 </Button>
               </Box>
 
@@ -686,7 +1069,7 @@ function PersonalProfile() {
                         <strong>Add Courses:</strong> Within each semester, use "Add Course" to include your courses.
                       </Typography>
                       <Typography component="li" sx={{ mb: 2 }}>
-                        <strong>Enter Details:</strong> For each course, input the course name, credits, and grade.
+                        <strong>Enter Details:</strong> For each course, input the course name, credits, and score10.
                       </Typography>
                       <Typography component="li">
                         <strong>Track Progress:</strong> View your GPA chart and progress circle for performance tracking.
@@ -721,7 +1104,7 @@ function PersonalProfile() {
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        • Regularly update your grades to maintain accurate GPA calculations
+                        • Regularly update your scores to maintain accurate GPA calculations
                       </Typography>
                       <Typography variant="body2">
                         • Use the Study Smart Tips section for effective learning strategies
@@ -732,7 +1115,7 @@ function PersonalProfile() {
                         • Check your progress circle to track your overall performance
                       </Typography>
                       <Typography variant="body2">
-                        • Take advantage of practice tests to improve your grades
+                        • Take advantage of practice tests to improve your scores
                       </Typography>
                     </Grid>
                   </Grid>
@@ -740,6 +1123,46 @@ function PersonalProfile() {
               </CardContent>
             </Card>
           </Box>
+
+          {/* Personal Information Section */}
+          {profileData && (
+            <Paper
+              sx={{
+                p: 4,
+                mb: 4,
+                borderRadius: '16px',
+                border: '1px solid rgba(0,0,0,0.08)',
+              }}
+            >
+              <Typography variant="h6" gutterBottom color="primary" sx={{ mb: 3 }}>
+                Personal Information
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Full Name"
+                    fullWidth
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    variant="outlined"
+                    disabled={loading || saving}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Email"
+                    fullWidth
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    variant="outlined"
+                    disabled={true}
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+          )}
         </Container>
       </Box>
       <Snackbar

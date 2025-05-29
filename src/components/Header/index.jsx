@@ -11,6 +11,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import logo from '../../assets/logo.svg';
 import { selectCurrentUser } from '../../features/auth/authSlice';
 import { logout } from '../../features/auth/authSlice';
+import UserMenu from '../UserMenu';
 
 export default function Header() {
   const navigate = useNavigate();
@@ -20,6 +21,13 @@ export default function Header() {
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
+  };
+
+  const handleLogin = () => {
+    console.log('🔑 Header: Is authenticated before navigating to login:', user ? true : false);
+    console.log('🔄 Header: Attempting to navigate to login page...');
+    navigate('/login');
+    console.log('✅ Header: Navigation completed');
   };
 
   return (
@@ -92,32 +100,11 @@ export default function Header() {
 
         {/* Hiển thị email hoặc nút Sign In */}
         {user ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography sx={{ color: '#16977D' }}>
-              {user.email}
-            </Typography>
-            <Button
-              variant="outlined"
-              onClick={handleLogout}
-              sx={{
-                borderColor: '#16977D',
-                color: '#16977D',
-                borderRadius: 20,
-                height: 30,
-                textTransform: 'none',
-                '&:hover': {
-                  borderColor: '#12725f',
-                  backgroundColor: 'rgba(18, 114, 95, 0.04)'
-                },
-              }}
-            >
-              Logout
-            </Button>
-          </Box>
+          <UserMenu />
         ) : (
           <Button
             variant="contained"
-            onClick={() => navigate("/login")}
+            onClick={handleLogin}
             sx={{
               backgroundColor: '#16977D',
               borderRadius: 20,

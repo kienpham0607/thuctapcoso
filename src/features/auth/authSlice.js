@@ -3,11 +3,30 @@ import { authApi } from './authApiService';
 
 const initialState = {
     user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
+    accessToken: localStorage.getItem('accessToken'),
+    refreshToken: localStorage.getItem('refreshToken'),
+    isAuthenticated: !!localStorage.getItem('accessToken'),
     isLoading: false,
     error: null
 };
+
+// Add logic to clear tokens on startup if not authenticated
+if (!initialState.isAuthenticated) {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('persist:root');
+    sessionStorage.clear();
+    // Also consider clearing cache here if necessary, similar to logout
+    if (window.caches) {
+        caches.keys().then(function(names) {
+            for (let name of names) {
+                caches.delete(name);
+            }
+        });
+    }
+    console.log('🧹 Cleared residual tokens and auth data on startup.');
+}
 
 const authSlice = createSlice({
     name: 'auth',
@@ -15,11 +34,32 @@ const authSlice = createSlice({
     reducers: {
         logout: (state) => {
             console.log('🔴 Logging out user...');
+            // Clear Redux state
             state.user = null;
-            state.token = null;
+            state.accessToken = null;
+            state.refreshToken = null;
             state.isAuthenticated = false;
             state.error = null;
-            localStorage.removeItem('token');
+            state.isLoading = false;
+
+            // Clear localStorage
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            localStorage.removeItem('persist:root');
+
+            // Clear sessionStorage
+            sessionStorage.clear();
+
+            // Clear any cached data
+            if (window.caches) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+
             console.log('✅ User logged out successfully');
         },
         clearError: (state) => {
@@ -44,9 +84,11 @@ const authSlice = createSlice({
                     state.isLoading = false;
                     state.isAuthenticated = true;
                     state.user = payload.user;
-                    state.token = payload.token;
-                    localStorage.setItem('token', payload.token);
-                    console.log('🔑 Token stored in localStorage');
+                    state.accessToken = payload.accessToken;
+                    state.refreshToken = payload.refreshToken;
+                    localStorage.setItem('accessToken', payload.accessToken);
+                    localStorage.setItem('refreshToken', payload.refreshToken);
+                    console.log('🔑 Access and Refresh tokens stored in localStorage');
                 }
             )
             .addMatcher(
@@ -73,9 +115,11 @@ const authSlice = createSlice({
                     state.isLoading = false;
                     state.isAuthenticated = true;
                     state.user = payload.user;
-                    state.token = payload.token;
-                    localStorage.setItem('token', payload.token);
-                    console.log('🔑 Token stored in localStorage');
+                    state.accessToken = payload.accessToken;
+                    state.refreshToken = payload.refreshToken;
+                    localStorage.setItem('accessToken', payload.accessToken);
+                    localStorage.setItem('refreshToken', payload.refreshToken);
+                    console.log('🔑 Access and Refresh tokens stored in localStorage');
                 }
             )
             .addMatcher(

@@ -5,9 +5,9 @@ export const authApi = createApi({
     baseQuery: fetchBaseQuery({
         baseUrl: 'http://localhost:5000/api/auth/',
         prepareHeaders: (headers, { getState }) => {
-            const token = getState().auth.token;
-            if (token) {
-                headers.set('authorization', `Bearer ${token}`);
+            const accessToken = getState().auth.accessToken;
+            if (accessToken) {
+                headers.set('authorization', `Bearer ${accessToken}`);
             }
             return headers;
         },
@@ -22,7 +22,8 @@ export const authApi = createApi({
             transformResponse: (response) => {
                 return {
                     user: response.user,
-                    token: response.token
+                    accessToken: response.accessToken,
+                    refreshToken: response.refreshToken
                 };
             },
             transformErrorResponse: (response) => {
@@ -40,7 +41,8 @@ export const authApi = createApi({
             transformResponse: (response) => {
                 return {
                     user: response.user,
-                    token: response.token
+                    accessToken: response.accessToken,
+                    refreshToken: response.refreshToken
                 };
             },
             transformErrorResponse: (response) => {
@@ -70,6 +72,25 @@ export const authApi = createApi({
             }),
             invalidatesTags: ['User']
         }),
+        refreshToken: builder.mutation({
+            query: (refreshToken) => ({
+                url: 'refresh-token',
+                method: 'POST',
+                body: { refreshToken },
+            }),
+            transformResponse: (response) => {
+                return {
+                    user: response.user,
+                    accessToken: response.accessToken,
+                    refreshToken: response.refreshToken
+                };
+            },
+            transformErrorResponse: (response) => {
+                return {
+                    message: response.data?.message || 'Token refresh failed'
+                };
+            }
+        }),
     }),
     tagTypes: ['User'],
 });
@@ -80,4 +101,5 @@ export const {
     useGetCurrentUserQuery,
     useUpdateProfileMutation,
     useUploadAvatarMutation,
+    useRefreshTokenMutation,
 } = authApi;

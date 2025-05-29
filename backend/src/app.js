@@ -18,9 +18,11 @@ app.use('/uploads', express.static('uploads')); // serve static files from uploa
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
+const gpaRoutes = require('./routes/gpaRoutes');
 
 // Sử dụng routes
 app.use('/api/auth', authRoutes);
+app.use('/api/gpa', gpaRoutes);
 
 // Route mẫu kiểm tra
 app.get('/', (req, res) => {

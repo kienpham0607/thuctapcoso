@@ -23,7 +23,8 @@ import {
   VisibilityOff,
   Person,
   Email,
-  Lock
+  Lock,
+  School as SchoolIcon,
 } from '@mui/icons-material';
 import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
@@ -42,7 +43,7 @@ export default function SignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    accountType: "user",
+    accountType: "",
     agreeTerms: false,
     otp: "",
   });
@@ -112,6 +113,11 @@ export default function SignUpPage() {
       return;
     }
 
+    if (!formData.accountType) {
+      setError("❌ Vui lòng chọn loại tài khoản");
+      return;
+    }
+
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!passwordRegex.test(formData.password)) {
       setError("❌ Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số!");
@@ -139,7 +145,7 @@ export default function SignUpPage() {
       setError("✓ Đăng ký thành công! Đang chuyển hướng...");
       
       setTimeout(() => {
-        navigate("/register");
+        navigate("/login");
       }, 2000);
     } catch (err) {
       setError("⚠️ Có lỗi xảy ra khi đăng ký");
@@ -154,17 +160,7 @@ export default function SignUpPage() {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(135deg, #16977D 0%, #0d5c4d 100%)',
         position: 'relative',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'radial-gradient(circle at 20% 150%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)',
-        }
       }}
     >
       <Container component="main" maxWidth="sm" sx={{ py: 4 }}>
@@ -453,28 +449,25 @@ export default function SignUpPage() {
             <FormControl 
               fullWidth 
               margin="normal"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: '#16977D',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#16977D',
-                  }
-                }
-              }}
+              required
             >
-              <InputLabel id="accountType-label">Loại tài khoản</InputLabel>
+              <InputLabel id="account-type-label">Loại tài khoản</InputLabel>
               <Select
-                labelId="accountType-label"
+                labelId="account-type-label"
                 id="accountType"
                 name="accountType"
                 value={formData.accountType}
-                onChange={handleChange}
                 label="Loại tài khoản"
+                onChange={handleChange}
+                startAdornment={
+                   <InputAdornment position="start">
+                      <SchoolIcon color="action" />
+                   </InputAdornment>
+                }
               >
-                <MenuItem value="user">Độc giả</MenuItem>
-                <MenuItem value="journalist">Tác giả</MenuItem>
+                <MenuItem value="">-- Chọn loại tài khoản --</MenuItem>
+                <MenuItem value="teacher">Giảng viên</MenuItem>
+                <MenuItem value="student">Sinh viên</MenuItem>
               </Select>
             </FormControl>
 
@@ -548,62 +541,6 @@ export default function SignUpPage() {
             >
               {loading ? 'Đang xử lý...' : 'Đăng ký'}
             </Button>
-
-            <Divider 
-              sx={{ 
-                my: 3,
-                '&::before, &::after': {
-                  borderColor: 'rgba(0, 0, 0, 0.1)',
-                }
-              }}
-            >
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: 'text.secondary',
-                  px: 2,
-                }}
-              >
-                Hoặc đăng ký với
-              </Typography>
-            </Divider>
-
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<GoogleIcon />}
-                  sx={{
-                    textTransform: 'none',
-                    borderColor: 'rgba(0, 0, 0, 0.12)',
-                    color: 'rgba(0, 0, 0, 0.87)',
-                    '&:hover': {
-                      bgcolor: 'rgba(0, 0, 0, 0.02)',
-                    }
-                  }}
-                >
-                  Google
-                </Button>
-              </Grid>
-              <Grid item xs={6}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<FacebookIcon />}
-                  sx={{
-                    textTransform: 'none',
-                    borderColor: 'rgba(0, 0, 0, 0.12)',
-                    color: 'rgba(0, 0, 0, 0.87)',
-                    '&:hover': {
-                      bgcolor: 'rgba(0, 0, 0, 0.02)',
-                    }
-                  }}
-                >
-                  Facebook
-                </Button>
-              </Grid>
-            </Grid>
 
             <Box sx={{ mt: 3, textAlign: 'center' }}>
               <Typography variant="body2">
