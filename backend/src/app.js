@@ -12,7 +12,10 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true
+}));
 app.use(express.json()); // parse JSON body
 app.use('/uploads', express.static('uploads')); // serve static files from uploads directory
 

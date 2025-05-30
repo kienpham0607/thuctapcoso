@@ -21,4 +21,7 @@ router.put('/:id', gpaController.updateGpaEntry);
 // DELETE /api/gpa/:id - Xóa mục nhập GPA theo ID
 router.delete('/:id', gpaController.deleteGpaEntry);
 
+// POST /api/gpa/bulk - Thêm nhiều mục nhập GPA mới cùng lúc
+router.post('/bulk', gpaController.createBulkGpaEntries);
+
 module.exports = router; 

@@ -27,7 +27,7 @@ const apiRequest = async (url, method = 'GET', data = null) => {
     }
 
     try {
-        const response = await fetch(`${API_URL}/gpa${url}`, config);
+        const response = await fetch(`${API_URL}${url}`, config);
         
         // Handle non-JSON responses
         const contentType = response.headers.get('content-type');
@@ -106,3 +106,6 @@ export const updateGpaEntryApi = (id, gpaData) => apiRequest(`/gpa/${id}`, 'PUT'
 
 // Xóa mục nhập GPA
 export const deleteGpaEntryApi = (id) => apiRequest(`/gpa/${id}`, 'DELETE');
+
+// Thêm nhiều mục nhập GPA mới cùng lúc
+export const createBulkGpaEntriesApi = (gpaEntriesData) => apiRequest('/gpa/bulk', 'POST', gpaEntriesData);

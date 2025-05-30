@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || '/api'; // Định nghĩa URL base của API backend
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'; // Định nghĩa URL base của API backend
 
 // Hàm trợ giúp để lấy Access Token (Cần điều chỉnh)
 const getAccessToken = () => {

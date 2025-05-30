@@ -39,15 +39,23 @@ const PrivateRoute = ({ children }) => {
                     const result = await refreshTokenMutation(refreshToken).unwrap();
                     console.log('✅ Token refresh successful');
 
-                    // Update tokens in localStorage
+                    // Update tokens in localStorage and Redux state
                     localStorage.setItem('accessToken', result.accessToken);
                     localStorage.setItem('refreshToken', result.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    // Update Redux state directly
+                    dispatch({
+                        type: 'auth/tokenRefreshed',
+                        payload: {
+                            accessToken: result.accessToken,
+                            refreshToken: result.refreshToken,
+                            user: result.user
+                        }
+                    });
 
                 } catch (error) {
                     console.log('❌ Token refresh failed:', error);
-                    // Clear tokens and redirect to login
-                    localStorage.removeItem('accessToken');
-                    localStorage.removeItem('refreshToken');
                     dispatch({ type: 'auth/logout' });
                 } finally {
                     setLoading(false);

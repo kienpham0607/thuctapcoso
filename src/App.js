@@ -13,6 +13,7 @@ import MyAccount from './pages/MyAccount';
 import TestList from './components/TestList';
 import TestQuestions from './components/TestQuestions';
 import PrivateRoute from './utils/PrivateRoute';
+import TeacherDashboard from './pages/TeacherDashboard';
 
 function App() {
   return (
@@ -78,6 +79,16 @@ function App() {
             <PrivateRoute>
               <Header />
               <MyAccount />
+            </PrivateRoute>
+          }
+        />
+
+        {/* New Teacher Dashboard Route */}
+        <Route
+          path="/teacher/dashboard"
+          element={
+            <PrivateRoute>
+              <TeacherDashboard />
             </PrivateRoute>
           }
         />

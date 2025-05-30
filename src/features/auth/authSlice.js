@@ -3,168 +3,154 @@ import { authApi } from './authApiService';
 
 const initialState = {
     user: null,
-    accessToken: localStorage.getItem('accessToken'),
-    refreshToken: localStorage.getItem('refreshToken'),
-    isAuthenticated: !!localStorage.getItem('accessToken'),
+    accessToken: localStorage.getItem('accessToken') || null,
+    refreshToken: localStorage.getItem('refreshToken') || null,
+    isAuthenticated: false,
     isLoading: false,
     error: null
 };
 
-// Add logic to clear tokens on startup if not authenticated
-if (!initialState.isAuthenticated) {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('persist:root');
-    sessionStorage.clear();
-    // Also consider clearing cache here if necessary, similar to logout
-    if (window.caches) {
-        caches.keys().then(function(names) {
-            for (let name of names) {
-                caches.delete(name);
-            }
-        });
-    }
-    console.log('🧹 Cleared residual tokens and auth data on startup.');
-}
+// Debug log initial state
+console.log('Auth Initial State:', {
+    hasAccessToken: !!localStorage.getItem('accessToken'),
+    hasRefreshToken: !!localStorage.getItem('refreshToken'),
+    isAuthenticated: false
+});
 
 const authSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
+        setCredentials: (state, action) => {
+            const { user, accessToken, refreshToken } = action.payload;
+            state.user = user;
+            state.accessToken = accessToken;
+            state.refreshToken = refreshToken;
+            state.isAuthenticated = true;
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+        },
         logout: (state) => {
-            console.log('🔴 Logging out user...');
-            // Clear Redux state
             state.user = null;
             state.accessToken = null;
             state.refreshToken = null;
             state.isAuthenticated = false;
             state.error = null;
-            state.isLoading = false;
-
-            // Clear localStorage
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
-            localStorage.removeItem('user');
-            localStorage.removeItem('persist:root');
-
-            // Clear sessionStorage
-            sessionStorage.clear();
-
-            // Clear any cached data
-            if (window.caches) {
-                caches.keys().then(function(names) {
-                    for (let name of names) {
-                        caches.delete(name);
-                    }
-                });
-            }
-
-            console.log('✅ User logged out successfully');
         },
-        clearError: (state) => {
-            state.error = null;
-        }
+        clearCredentials: (state) => {
+            state.user = null;
+            state.accessToken = null;
+            state.refreshToken = null;
+            state.isAuthenticated = false;
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+        },
+        updateUserProfile: (state, action) => {
+            state.user = { ...state.user, ...action.payload };
+        },
     },
     extraReducers: (builder) => {
         builder
-            // Login mutation
+            // Handle getCurrentUser
+            .addMatcher(
+                authApi.endpoints.getCurrentUser.matchPending,
+                (state) => {
+                    state.isLoading = true;
+                    state.error = null;
+                }
+            )
+            .addMatcher(
+                authApi.endpoints.getCurrentUser.matchFulfilled,
+                (state, action) => {
+                    state.isLoading = false;
+                    state.user = action.payload.user;
+                    state.isAuthenticated = true;
+                    state.error = null;
+                }
+            )
+            .addMatcher(
+                authApi.endpoints.getCurrentUser.matchRejected,
+                (state, action) => {
+                    state.isLoading = false;
+                    state.error = action.error.message;
+                    if (action.error.status === 401) {
+                        state.isAuthenticated = false;
+                    }
+                }
+            )
+            // Handle login
             .addMatcher(
                 authApi.endpoints.login.matchPending,
                 (state) => {
-                    console.log('🔄 Login request started...');
                     state.isLoading = true;
                     state.error = null;
                 }
             )
             .addMatcher(
                 authApi.endpoints.login.matchFulfilled,
-                (state, { payload }) => {
-                    console.log('✅ Login successful:', payload);
-                    state.isLoading = false;
+                (state, action) => {
+                    const { user, accessToken, refreshToken } = action.payload;
+                    state.user = user;
+                    state.accessToken = accessToken;
+                    state.refreshToken = refreshToken;
                     state.isAuthenticated = true;
-                    state.user = payload.user;
-                    state.accessToken = payload.accessToken;
-                    state.refreshToken = payload.refreshToken;
-                    localStorage.setItem('accessToken', payload.accessToken);
-                    localStorage.setItem('refreshToken', payload.refreshToken);
-                    console.log('🔑 Access and Refresh tokens stored in localStorage');
+                    state.isLoading = false;
+                    state.error = null;
+                    localStorage.setItem('accessToken', accessToken);
+                    localStorage.setItem('refreshToken', refreshToken);
                 }
             )
             .addMatcher(
                 authApi.endpoints.login.matchRejected,
-                (state, { payload }) => {
-                    console.log('❌ Login failed:', payload);
+                (state, action) => {
                     state.isLoading = false;
-                    state.error = payload?.message || 'Đăng nhập thất bại';
+                    state.error = action.error.message;
                 }
             )
-            // Register mutation
+            // Handle logout
             .addMatcher(
-                authApi.endpoints.register.matchPending,
+                authApi.endpoints.logout.matchFulfilled,
                 (state) => {
-                    console.log('🔄 Registration request started...');
-                    state.isLoading = true;
+                    state.user = null;
+                    state.accessToken = null;
+                    state.refreshToken = null;
+                    state.isAuthenticated = false;
                     state.error = null;
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('refreshToken');
                 }
             )
-            .addMatcher(
-                authApi.endpoints.register.matchFulfilled,
-                (state, { payload }) => {
-                    console.log('✅ Registration successful:', payload);
-                    state.isLoading = false;
-                    state.isAuthenticated = true;
-                    state.user = payload.user;
-                    state.accessToken = payload.accessToken;
-                    state.refreshToken = payload.refreshToken;
-                    localStorage.setItem('accessToken', payload.accessToken);
-                    localStorage.setItem('refreshToken', payload.refreshToken);
-                    console.log('🔑 Access and Refresh tokens stored in localStorage');
-                }
-            )
-            .addMatcher(
-                authApi.endpoints.register.matchRejected,
-                (state, { payload }) => {
-                    console.log('❌ Registration failed:', payload);
-                    state.isLoading = false;
-                    state.error = payload?.message || 'Đăng ký thất bại';
-                }
-            )
-            // Get current user
-            .addMatcher(
-                authApi.endpoints.getCurrentUser.matchFulfilled,
-                (state, { payload }) => {
-                    console.log('✅ Current user data retrieved:', payload);
-                    state.user = payload;
-                }
-            )
-            // Update profile
+            // Handle update profile
             .addMatcher(
                 authApi.endpoints.updateProfile.matchFulfilled,
-                (state, { payload }) => {
-                    console.log('✅ Profile updated successfully:', payload);
-                    state.user = payload;
+                (state, action) => {
+                    state.user = action.payload;
                 }
             )
-            // Upload avatar
+            // Handle token refresh
             .addMatcher(
-                authApi.endpoints.uploadAvatar.matchFulfilled,
-                (state, { payload }) => {
-                    console.log('✅ Avatar uploaded successfully:', payload);
-                    if (state.user) {
-                        state.user.avatar = payload.avatar;
-                    }
+                authApi.endpoints.refreshToken.matchFulfilled,
+                (state, action) => {
+                    const { accessToken, refreshToken } = action.payload;
+                    state.accessToken = accessToken;
+                    state.refreshToken = refreshToken;
+                    localStorage.setItem('accessToken', accessToken);
+                    localStorage.setItem('refreshToken', refreshToken);
                 }
             );
-    }
+    },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { setCredentials, logout, clearCredentials, updateUserProfile } = authSlice.actions;
 
 // Selectors
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
-export const selectAuthError = (state) => state.auth.error;
+export const selectAccessToken = (state) => state.auth.accessToken;
+export const selectRefreshToken = (state) => state.auth.refreshToken;
 export const selectAuthLoading = (state) => state.auth.isLoading;
+export const selectAuthError = (state) => state.auth.error;
 
 export default authSlice.reducer;
