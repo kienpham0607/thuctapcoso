@@ -293,7 +293,7 @@ exports.getUserById = controllerHandler(async (req, res) => {
 
 // Update user by ID (admin only)
 exports.updateUserById = controllerHandler(async (req, res) => {
-    const { fullName, email, role, phone, address, bio } = req.body;
+    const { fullName, email, role, phone, address, bio, password } = req.body;
 
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -321,7 +321,12 @@ exports.updateUserById = controllerHandler(async (req, res) => {
     user.phone = phone || user.phone;
     user.address = address || user.address;
     user.bio = bio || user.bio;
-    // Password change should be handled separately for security
+
+    // Update password if provided
+    if (password) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+    }
 
     const updatedUser = await user.save();
 
@@ -341,21 +346,32 @@ exports.updateUserById = controllerHandler(async (req, res) => {
     });
 });
 
-// Delete user by ID (admin only)
+// Delete user handler (Admin only)
 exports.deleteUserById = controllerHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    // Check if the authenticated user has permission to delete users (e.g., admin role)
+    // This is a basic check, you might need more robust permission handling
+    if (req.user.role !== 'admin' && req.user.role !== 'teacher') {
+         return res.status(403).json({
+            success: false,
+            message: 'Bạn không có quyền thực hiện thao tác này'
+        });
+    }
 
-    if (!user) {
+    const userId = req.params.id;
+
+    // Find and delete the user
+    const deletedUser = await User.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
         return res.status(404).json({
             success: false,
             message: 'Không tìm thấy người dùng'
         });
     }
 
-    await user.remove(); // Using remove() for Mongoose versions < 6.0, use deleteOne() or deleteMany() otherwise
-
     res.status(200).json({
         success: true,
-        message: 'Xóa người dùng thành công'
+        message: 'Xóa người dùng thành công',
+        user: deletedUser // Optionally return deleted user info
     });
 });

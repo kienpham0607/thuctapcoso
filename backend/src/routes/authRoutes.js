@@ -22,14 +22,14 @@ router.route('/profile')
 // Change password
 router.put('/change-password', authController.changePassword);
 
-// Admin only routes
-router.get('/users', authorize('admin'), authController.getAllUsers);
+// Admin and Teacher routes
+router.get('/users', authorize('admin', 'teacher'), authController.getAllUsers);
 
-// Add routes for specific user management (admin only)
+// Add routes for specific user management (admin and teacher)
 router.route('/users/:id')
-    .get(authorize('admin'), authController.getUserById)
-    .put(authorize('admin'), authController.updateUserById)
-    .delete(authorize('admin'), authController.deleteUserById);
+    .get(authorize('admin', 'teacher'), authController.getUserById)
+    .put(authorize('admin', 'teacher'), authController.updateUserById)
+    .delete(authorize('admin'), authController.deleteUserById); // Keep delete as admin only
 
 // Upload avatar route (if implemented)
 // router.post('/upload-avatar', upload.single('avatar'), authController.uploadAvatar);

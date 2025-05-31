@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import './profile.css';
+import '../TeacherDashboard/profile.css'; // Original path
 import {
   Box,
   Avatar,
@@ -124,7 +124,7 @@ export const ProfileContent = () => {
     if (!passwordData.newPassword) {
       newErrors.newPassword = "New password is required.";
     }
-     if (passwordData.newPassword !== passwordData.confirmPassword) {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
       newErrors.confirmPassword = "New password and confirm password do not match.";
     }
     // Add complexity rules for new password if needed
@@ -136,12 +136,12 @@ export const ProfileContent = () => {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     if (!validateProfileForm()) {
-        setSnackbar({
-            open: true,
-            message: 'Please check your information.',
-            severity: 'warning'
-        });
-        return;
+      setSnackbar({
+        open: true,
+        message: 'Please check your information.',
+        severity: 'warning'
+      });
+      return;
     }
 
     try {
@@ -233,12 +233,12 @@ export const ProfileContent = () => {
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (!validatePasswordForm()) {
-       setSnackbar({
-            open: true,
-            message: 'Please check the entered passwords.',
-            severity: 'warning'
-        });
-        return;
+      setSnackbar({
+        open: true,
+        message: 'Please check the entered passwords.',
+        severity: 'warning'
+      });
+      return;
     }
 
     try {
@@ -248,9 +248,9 @@ export const ProfileContent = () => {
       }).unwrap();
 
       setSnackbar({
-          open: true,
-          message: 'Password changed successfully!',
-          severity: 'success'
+        open: true,
+        message: 'Password changed successfully!',
+        severity: 'success'
       });
       // Clear password fields on success
       setPasswordData({
@@ -261,10 +261,10 @@ export const ProfileContent = () => {
     } catch (error) {
       console.error("Failed to change password:", error);
       const errorMessage = error.data?.message || 'Failed to change password.';
-       setSnackbar({
-          open: true,
-          message: errorMessage,
-          severity: 'error'
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: 'error'
       });
     }
   };
@@ -272,9 +272,9 @@ export const ProfileContent = () => {
   // Show loading state
   if (isLoading) {
     return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-            <CircularProgress />
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
@@ -308,7 +308,7 @@ export const ProfileContent = () => {
             <Box sx={{ p: 3, textAlign: 'center' }}>
               <div onClick={() => fileInputRef.current?.click()} style={{ position: 'relative', width: 120, height: 120, margin: '0 auto 1.5rem', borderRadius: '50%', cursor: 'pointer', transition: 'all 0.3s ease' }}>
                 {isUploading || isUploadingAvatar ? (
-                    <CircularProgress size={60} sx={{ position: 'absolute', top: '50%', left: '50%', marginTop: '-30px', marginLeft: '-30px', zIndex: 1 }} />
+                  <CircularProgress size={60} sx={{ position: 'absolute', top: '50%', left: '50%', marginTop: '-30px', marginLeft: '-30px', zIndex: 1 }} />
                 ) : null}
                 <Avatar
                   alt="Profile Avatar"
@@ -325,11 +325,12 @@ export const ProfileContent = () => {
                     '&:hover': {
                       opacity: 0.8,
                     },
-                    background: 'none',
-                    backgroundColor: 'transparent',
                   }}
                   onClick={() => fileInputRef.current?.click()}
-                />
+                >
+                  {userData?.user?.fullName?.[0]}
+                </Avatar>
+
                 <input
                   type="file"
                   hidden
@@ -357,10 +358,11 @@ export const ProfileContent = () => {
                   backgroundColor: '#f0f2f5',
                   padding: '4px 12px',
                   borderRadius: '12px',
-                  display: 'inline-block'
+                  display: 'inline-block',
+                  textTransform: 'capitalize'
                 }}
               >
-                {userData?.user?.role === 'teacher' ? 'Teacher' : 'User'}
+                {userData?.user?.role || 'User'}
               </Typography>
 
               <Box sx={{ mt: 3, textAlign: 'left' }}>
@@ -545,7 +547,7 @@ export const ProfileContent = () => {
                     type={showPassword.confirm ? "text" : "password"}
                     name="confirmNewPassword"
                     value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirm: !showPassword.confirm })}
                     variant="outlined"
                     error={!!errors.confirmNewPassword}
                     helperText={errors.confirmNewPassword}
@@ -590,4 +592,4 @@ export const ProfileContent = () => {
   );
 };
 
-export default ProfileContent;
+export default ProfileContent; 

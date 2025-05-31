@@ -109,59 +109,98 @@ export const authApi = createApi({
             }),
         }),
 
-        // Add user management endpoints (Admin only access handled by backend routes)
+        // User management endpoints (Admin only access)
         getUsers: builder.query({
-            query: () => {
-                console.log('Calling getUsers endpoint');
-                return 'users'; // GET /api/auth/users
-            },
+            query: () => 'users',
             providesTags: (result) =>
-                // Assuming the API returns an array of users
                 result
-                ? [
-                    ...result.users.map(({ id }) => ({ type: 'User', id })),
-                    { type: 'User', id: 'LIST' },
+                    ? [
+                        ...result.map(({ id }) => ({ type: 'User', id })),
+                        { type: 'User', id: 'LIST' },
                     ]
-                : [{ type: 'User', id: 'LIST' }],
+                    : [{ type: 'User', id: 'LIST' }],
+            transformResponse: (response) => {
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to get users');
+                }
+                return response.users;
+            },
+            transformErrorResponse: (response) => {
+                return response.data?.message || 'Failed to get users';
+            }
         }),
+        
         getUserById: builder.query({
-            query: (id) => {
-                 console.log('Calling getUserById endpoint for id:', id);
-                return `users/${id}`;
-            }, // GET /api/auth/users/:id
-             providesTags: (result, error, id) => [{ type: 'User', id }],
+            query: (id) => `users/${id}`,
+            transformResponse: (response) => {
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to get user');
+                }
+                return response.user;
+            },
+            providesTags: (result, error, id) => [{ type: 'User', id }]
         }),
+        
         createUser: builder.mutation({
             query: (userData) => ({
-                url: 'register', // Using the existing register API for simplicity, but note backend authorization may be needed
+                url: 'register',
                 method: 'POST',
                 body: userData,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
             }),
-            invalidatesTags: [{ type: 'User', id: 'LIST' }], // Invalidate list after creating
+            transformResponse: (response) => {
+                console.log('Create user response:', response);
+                return response;
+            },
+            transformErrorResponse: (error) => {
+                console.log('Create user error:', error);
+                if (error.data) {
+                    return error.data;
+                }
+                return { message: 'Failed to create user' };
+            },
+            invalidatesTags: [{ type: 'User', id: 'LIST' }]
         }),
+        
         updateUser: builder.mutation({
-            query: ({ id, ...patch }) => ({
-                url: `users/${id}`, // PUT /api/auth/users/:id
+            query: ({ id, ...update }) => ({
+                url: `users/${id}`,
                 method: 'PUT',
-                body: patch,
+                body: update
             }),
-             invalidatesTags: (result, error, { id }) => [{
-                type: 'User',
-                id
-            }, { type: 'User', id: 'LIST' }], // Invalidate specific user and list
+            transformResponse: (response) => {
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to update user');
+                }
+                return response.user;
+            },
+            transformErrorResponse: (response) => {
+                return response.data?.message || 'Failed to update user';
+            },
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'User', id },
+                { type: 'User', id: 'LIST' }
+            ]
         }),
+        
         deleteUser: builder.mutation({
             query: (id) => ({
-                url: `users/${id}`, // DELETE /api/auth/users/:id
-                method: 'DELETE',
+                url: `users/${id}`,
+                method: 'DELETE'
             }),
-            invalidatesTags: (result, error, id) => [{
-                type: 'User',
-                id: 'LIST'
-            }, {
-                type: 'User',
-                id
-            }], // Invalidate list and specific user
+            transformResponse: (response) => {
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to delete user');
+                }
+                return response;
+            },
+            transformErrorResponse: (response) => {
+                return response.data?.message || 'Failed to delete user';
+            },
+            invalidatesTags: [{ type: 'User', id: 'LIST' }]
         }),
     }),
 });
@@ -175,10 +214,10 @@ export const {
     useUploadAvatarMutation,
     useRefreshTokenMutation,
     useLogoutMutation,
-    // Export new user management hooks
+    // User management hooks
     useGetUsersQuery,
     useGetUserByIdQuery,
     useCreateUserMutation,
     useUpdateUserMutation,
-    useDeleteUserMutation,
+    useDeleteUserMutation
 } = authApi;

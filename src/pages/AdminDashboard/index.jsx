@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import TestsManagement from '../../components/tests-management';
 import { OverviewTab } from '../../components/overview-tab';
-import ProfileContent from './ProfileContent';
+import { ProfileContent } from './ProfileContent'; // Updated import
 import UserManagement from '../../components/user-management/UserManagement';
 import {
   Box,
@@ -40,12 +40,12 @@ import { useNavigate } from 'react-router-dom';
 
 const drawerWidth = 280;
 
-const TeacherDashboard = () => {
+const AdminDashboard = () => { // Renamed component
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
     // Get the active tab from localStorage or default to 'overview'
-    return localStorage.getItem('teacherDashboardActiveTab') || 'overview';
+    return localStorage.getItem('adminDashboardActiveTab') || 'overview'; // Updated localStorage key
   });
   const [anchorEl, setAnchorEl] = useState(null);
   const [profileData, setProfileData] = useState(null);
@@ -55,7 +55,7 @@ const TeacherDashboard = () => {
 
   // Save active tab to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('teacherDashboardActiveTab', activeTab);
+    localStorage.setItem('adminDashboardActiveTab', activeTab); // Updated localStorage key
   }, [activeTab]);
 
   useEffect(() => {
@@ -63,12 +63,6 @@ const TeacherDashboard = () => {
       try {
         const data = await getUserProfileApi();
         setProfileData(data);
-        
-        // Check if user has permission to access user management
-        if (activeTab === 'users' && data.user?.role !== 'teacher' && data.user?.role !== 'admin') {
-          setActiveTab('overview');
-          setError('You do not have permission to access user management.');
-        }
       } catch (error) {
         console.error('Failed to fetch profile data:', error);
         setError(error.message || 'Failed to load profile data');
@@ -78,7 +72,7 @@ const TeacherDashboard = () => {
     };
 
     fetchProfileData();
-  }, [activeTab]);
+  }, [activeTab]); // Keep activeTab as dependency if profile data loading depends on tab
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -94,6 +88,8 @@ const TeacherDashboard = () => {
 
   const handleLogout = () => {
     handleProfileMenuClose();
+    // Add your logout logic here, e.g., navigate to login page
+    navigate('/login'); // Example: navigate to login after logout
   };
 
   const menuItems = [
@@ -119,11 +115,12 @@ const TeacherDashboard = () => {
             color: 'white'
           }}
         >
-          <SchoolIcon sx={{ fontSize: 20 }} />
+          {/* Consider changing this icon for Admin */}
+          <SchoolIcon sx={{ fontSize: 20 }} /> 
         </Box>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1 }}>
-            TeacherHub
+            AdminHub
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Dashboard
@@ -208,6 +205,7 @@ const TeacherDashboard = () => {
           </IconButton>
 
           <Tooltip title="Go to Home">
+            {/* Consider changing navigation for Admin */}
             <IconButton color="inherit" onClick={() => navigate('/')} sx={{ mr: 1 }}>
               <HomeIcon />
             </IconButton>
@@ -280,11 +278,12 @@ const TeacherDashboard = () => {
         
         {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'tests' && <PracticeTestsContent />}
-        {activeTab === 'users' && profileData?.user?.role === 'teacher' && <UserManagement />}
+        {/* Always display User Management for Admin */}
+        {activeTab === 'users' && <UserManagement />}
         {activeTab === 'profile' && <ProfileContent />}
       </Box>
     </Box>
   );
 };
 
-export default TeacherDashboard;
+export default AdminDashboard; // Export with new name 

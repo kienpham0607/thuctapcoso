@@ -14,6 +14,7 @@ import TestList from './components/TestList';
 import TestQuestions from './components/TestQuestions';
 import PrivateRoute from './utils/PrivateRoute';
 import TeacherDashboard from './pages/TeacherDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -83,12 +84,22 @@ function App() {
           }
         />
 
-        {/* New Teacher Dashboard Route */}
+        {/* Dashboard Routes */}
         <Route
           path="/teacher/dashboard"
           element={
             <PrivateRoute>
               <TeacherDashboard />
+            </PrivateRoute>
+          }
+        />
+        {/* Admin Dashboard Route */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <PrivateRoute>
+              {/* You might add specific admin role check here if PrivateRoute doesn't handle it */}
+              <AdminDashboard />
             </PrivateRoute>
           }
         />

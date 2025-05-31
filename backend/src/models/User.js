@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['student', 'teacher'],
+        enum: ['student', 'teacher', 'admin'],
         default: 'student',
     },
     createdAt: {
@@ -30,12 +30,15 @@ const userSchema = new mongoose.Schema({
     refreshToken: String,
     phone: {
         type: String,
+        default: ''
     },
     address: {
         type: String,
+        default: ''
     },
     bio: {
         type: String,
+        default: ''
     }
 });
 
