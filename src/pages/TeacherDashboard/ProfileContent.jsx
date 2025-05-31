@@ -92,31 +92,17 @@ export const ProfileContent = () => {
   // Update form data when user data is updated by mutation
   // Initial data for display comes directly from userData
   useEffect(() => {
-    console.log('useEffect triggered. userData:', userData);
-    // Only update profileData state for the form if userData is available
-    if (userData) {
-      // Check if user data from query is different from current form state before updating
-      // This prevents unnecessary re-renders of the form
-      if (
-        userData.fullName !== profileData.fullName ||
-        userData.email !== profileData.email ||
-        userData.phone !== profileData.phone ||
-        userData.address !== profileData.address ||
-        userData.bio !== profileData.bio ||
-        userData.avatar !== profileData.avatar
-      ) {
-        console.log('Updating profileData state for form from useEffect', userData);
-        setProfileData({
-          fullName: userData.fullName || '',
-          email: userData.email || '',
-          phone: userData.phone || '',
-          address: userData.address || '',
-          bio: userData.bio || '',
-          avatar: userData.avatar || ''
-        });
-      }
+    if (userData?.user) {
+      setProfileData({
+        fullName: userData.user.fullName || '',
+        email: userData.user.email || '',
+        phone: userData.user.phone || '',
+        address: userData.user.address || '',
+        bio: userData.user.bio || '',
+        avatar: userData.user.avatar || ''
+      });
     }
-  }, [userData]); // Depend on userData
+  }, [userData]);
 
   // Form validation for editable fields (optional, backend also validates)
   const validateProfileForm = () => {
@@ -152,7 +138,7 @@ export const ProfileContent = () => {
     if (!validateProfileForm()) {
         setSnackbar({
             open: true,
-            message: 'Please check the information.',
+            message: 'Please check your information.',
             severity: 'warning'
         });
         return;
@@ -167,29 +153,24 @@ export const ProfileContent = () => {
       };
 
       const result = await updateProfile(dataToUpdate).unwrap();
-
+      
+      console.log('Profile update response:', result);
+      
+      // Nếu có dữ liệu trả về, coi như thành công
       if (result) {
-        console.log('Profile updated successfully, received data:', result);
-        // State will be updated by useEffect due to RTK Query cache invalidation
         setSnackbar({
-            open: true,
-            message: "Profile updated successfully!",
-            severity: 'success'
-        });
-      } else {
-        setSnackbar({
-            open: true,
-            message: "Update successful, but data refresh may be delayed.",
-            severity: 'info'
+          open: true,
+          message: "Profile updated successfully!",
+          severity: 'success'
         });
       }
     } catch (error) {
       console.error("Failed to update profile:", error);
-      const errorMessage = error.data?.message || "Failed to update profile.";
+      const errorMessage = error.data?.message || "Failed to update profile";
       setSnackbar({
-          open: true,
-          message: errorMessage,
-          severity: 'error'
+        open: true,
+        message: errorMessage,
+        severity: 'error'
       });
     }
   };
@@ -198,25 +179,49 @@ export const ProfileContent = () => {
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Kiểm tra kích thước file (giới hạn 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setSnackbar({
+          open: true,
+          message: "Image size cannot exceed 5MB",
+          severity: 'error'
+        });
+        return;
+      }
+
+      // Kiểm tra định dạng file
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      if (!validTypes.includes(file.type)) {
+        setSnackbar({
+          open: true,
+          message: "Only JPG, JPEG or PNG images are allowed",
+          severity: 'error'
+        });
+        return;
+      }
+
       setIsUploading(true);
       const formData = new FormData();
       formData.append('avatar', file);
 
       try {
-        await uploadAvatar(formData).unwrap();
-        setSnackbar({
+        const result = await uploadAvatar(formData).unwrap();
+        console.log('Avatar upload response:', result);
+        
+        if (result) {
+          setSnackbar({
             open: true,
             message: "Avatar updated successfully!",
             severity: 'success'
-        });
-        // RTK Query will automatically refetch user data due to tag invalidation
+          });
+        }
       } catch (error) {
         console.error("Failed to upload avatar:", error);
-        const errorMessage = error.data?.message || "Failed to upload avatar.";
+        const errorMessage = error.data?.message || "Failed to update avatar";
         setSnackbar({
-            open: true,
-            message: errorMessage,
-            severity: 'error'
+          open: true,
+          message: errorMessage,
+          severity: 'error'
         });
       } finally {
         setIsUploading(false);
@@ -307,16 +312,22 @@ export const ProfileContent = () => {
                 ) : null}
                 <Avatar
                   alt="Profile Avatar"
-                  src={profileData.avatar || 'https://ui-avatars.com/api/?name=' + (userData?.fullName || 'User')}
-                  sx={{ width: 120, height: 120, margin: '0 auto 1.5rem', transition: 'opacity 0.3s ease', opacity: isUploading || isUploadingAvatar ? 0.5 : 1 }}
+                  src={userData?.user?.avatar || `https://ui-avatars.com/api/?name=${userData?.user?.fullName || 'User'}&background=random`}
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    margin: '0 auto 1.5rem',
+                    transition: 'opacity 0.3s ease',
+                    opacity: isUploading || isUploadingAvatar ? 0.5 : 1,
+                    border: '4px solid #fff',
+                    boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      opacity: 0.8,
+                    }
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
                 />
-                 <IconButton
-                  className="avatar-upload-button"
-                  size="small"
-                  sx={{ position: 'absolute', bottom: 8, right: 8, bgcolor: 'background.paper', zIndex: 2 }}
-                >
-                  <UploadIcon />
-                </IconButton>
                 <input
                   type="file"
                   hidden
@@ -326,11 +337,28 @@ export const ProfileContent = () => {
                 />
               </div>
 
-              <Typography variant="h6" gutterBottom>
-                {userData?.fullName || 'User'}
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{
+                  fontWeight: 'bold',
+                  color: '#2c3e50'
+                }}
+              >
+                {userData?.user?.fullName || 'User'}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                 {userData?.role === 'teacher' ? 'Teacher' : 'User'}
+              <Typography
+                variant="body2"
+                sx={{
+                  mb: 2,
+                  color: '#7f8c8d',
+                  backgroundColor: '#f0f2f5',
+                  padding: '4px 12px',
+                  borderRadius: '12px',
+                  display: 'inline-block'
+                }}
+              >
+                {userData?.user?.role === 'teacher' ? 'Teacher' : 'User'}
               </Typography>
 
               <Box sx={{ mt: 3, textAlign: 'left' }}>
@@ -338,7 +366,7 @@ export const ProfileContent = () => {
                   <EmailIcon sx={{ color: '#6B7280', mr: 1 }} />
                   <div>
                     <div className="info-label">Email</div>
-                    <div className="info-value">{userData?.email || 'Not provided'}</div>
+                    <div className="info-value">{userData?.user?.email || 'Not provided'}</div>
                   </div>
                 </div>
 
@@ -346,7 +374,7 @@ export const ProfileContent = () => {
                   <PhoneIcon sx={{ color: '#6B7280', mr: 1 }} />
                   <div>
                     <div className="info-label">Phone Number</div>
-                    <div className="info-value">{userData?.phone || "Not provided"}</div>
+                    <div className="info-value">{userData?.user?.phone || "Not provided"}</div>
                   </div>
                 </div>
 
@@ -354,7 +382,7 @@ export const ProfileContent = () => {
                   <LocationIcon sx={{ color: '#6B7280', mr: 1 }} />
                   <div>
                     <div className="info-label">Address</div>
-                    <div className="info-value">{userData?.address || "Not provided"}</div>
+                    <div className="info-value">{userData?.user?.address || "Not provided"}</div>
                   </div>
                 </div>
 
@@ -362,7 +390,7 @@ export const ProfileContent = () => {
                   <InfoIcon sx={{ color: '#6B7280', mr: 1 }} />
                   <div>
                     <div className="info-label">Bio</div>
-                    <div className="info-value">{userData?.bio || "Not provided"}</div>
+                    <div className="info-value">{userData?.user?.bio || "Not provided"}</div>
                   </div>
                 </div>
               </Box>
