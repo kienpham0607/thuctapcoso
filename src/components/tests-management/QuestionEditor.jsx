@@ -1,9 +1,29 @@
-import React from 'react';
-import './tests-management.css';
-import PropTypes from 'prop-types';
-import { X, Trash2, Plus } from 'lucide-react';
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Badge } from "../ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Plus, X, Trash2 } from "lucide-react";
 
-const QuestionEditor = ({ question, onUpdate, onDelete }) => {
+export function QuestionEditor({ question, onUpdate, onDelete }) {
+  // Ensure question has all required fields with default values
+  // Ensure all values are properly converted to their correct types
+  const safeQuestion = {
+    id: question.id || question._id || Date.now(),
+    type: String(question.type || "multiple-choice"),
+    question: String(question.questionText || question.question || ""),
+    options: Array.isArray(question.options)
+      ? question.options.map(opt => typeof opt === 'object' ? JSON.stringify(opt) : String(opt))
+      : [],
+    correctAnswer: String(question.correctAnswer || ""),
+    points: Number(question.points || 1),
+    order: Number(question.order || 1),
+    explanation: String(question.explanation || ""),
+  };
+
   const questionTypes = [
     { value: "multiple-choice", label: "Multiple Choice" },
     { value: "true-false", label: "True/False" },
@@ -12,104 +32,103 @@ const QuestionEditor = ({ question, onUpdate, onDelete }) => {
   ];
 
   const addOption = () => {
-    const newOptions = [...(question.options || []), ""];
+    const newOptions = [...safeQuestion.options, ""];
     onUpdate({ options: newOptions });
   };
 
   const updateOption = (index, value) => {
-    const newOptions = [...(question.options || [])];
+    const newOptions = [...safeQuestion.options];
     newOptions[index] = value;
     onUpdate({ options: newOptions });
   };
 
   const removeOption = (index) => {
-    const newOptions = question.options?.filter((_, i) => i !== index) || [];
+    const newOptions = safeQuestion.options.filter((_, i) => i !== index);
     onUpdate({ options: newOptions });
   };
 
   return (
-    <div className="card">
-      <div className="card-header">
+    <Card>
+      <CardHeader>
         <div className="flex items-center justify-between">
-          <h4 className="text-lg">Question {question.order}</h4>
+          <CardTitle className="text-lg">Question {safeQuestion.order}</CardTitle>
           <div className="flex items-center gap-2">
-            <span className="badge">{question.points} points</span>
-            <button className="btn btn-ghost btn-icon" onClick={onDelete}>
+            <Badge variant="outline">{safeQuestion.points} points</Badge>
+            <Button variant="ghost" size="icon" onClick={onDelete}>
               <Trash2 className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-      <div className="card-content space-y-4">
+      </CardHeader>
+      <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label>Question Type</label>
-            <select
-              value={question.type}
-              onChange={(e) => onUpdate({ type: e.target.value })}
-              className="form-select"
-            >
-              {questionTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
+            <Label>Question Type</Label>
+            <Select value={safeQuestion.type} onValueChange={(value) => onUpdate({ type: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {questionTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
-            <label>Points</label>
-            <input
+            <Label>Points</Label>
+            <Input
               type="number"
-              value={question.points}
-              onChange={(e) => onUpdate({ points: parseInt(e.target.value) || 1 })}
+              value={safeQuestion.points}
+              onChange={(e) => onUpdate({ points: Number.parseInt(e.target.value) || 1 })}
               min="1"
               max="10"
-              className="form-input"
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <label>Question</label>
-          <textarea
-            value={question.question}
+          <Label>Question</Label>
+          <Textarea
+            value={safeQuestion.question}
             onChange={(e) => onUpdate({ question: e.target.value })}
             placeholder="Enter question content..."
             rows={3}
-            className="form-textarea"
           />
         </div>
 
         {/* Multiple Choice Options */}
-        {question.type === "multiple-choice" && (
+        {safeQuestion.type === "multiple-choice" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label>Answer Options</label>
-              <button className="btn btn-outline btn-sm" onClick={addOption}>
+              <Label>Answer Options</Label>
+              <Button size="sm" variant="outline" onClick={addOption}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Option
-              </button>
+              </Button>
             </div>
             <div className="space-y-2">
-              {question.options?.map((option, index) => (
+              {safeQuestion.options.map((option, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={question.correctAnswer === option}
-                    onChange={() => onUpdate({ correctAnswer: option })}
-                    name={`question-${question.id}-options`}
-                    className="form-radio"
-                  />
-                  <input
-                    type="text"
+                  <RadioGroup
+                    value={safeQuestion.correctAnswer}
+                    onValueChange={(value) => onUpdate({ correctAnswer: value })}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value={String(option)} id={`option-${index}`} />
+                    </div>
+                  </RadioGroup>
+                  <Input
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
                     placeholder={`Option ${index + 1}`}
-                    className="form-input flex-1"
+                    className="flex-1"
                   />
-                  <button className="btn btn-ghost btn-icon" onClick={() => removeOption(index)}>
+                  <Button size="icon" variant="ghost" onClick={() => removeOption(index)}>
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -117,97 +136,63 @@ const QuestionEditor = ({ question, onUpdate, onDelete }) => {
         )}
 
         {/* True/False */}
-        {question.type === "true-false" && (
+        {safeQuestion.type === "true-false" && (
           <div className="space-y-2">
-            <label>Correct Answer</label>
-            <div className="space-y-2">
+            <Label>Correct Answer</Label>
+            <RadioGroup
+              value={safeQuestion.correctAnswer}
+              onValueChange={(value) => onUpdate({ correctAnswer: value })}
+            >
               <div className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  id={`true-${question.id}`}
-                  value="true"
-                  checked={question.correctAnswer === "true"}
-                  onChange={(e) => onUpdate({ correctAnswer: e.target.value })}
-                  name={`question-${question.id}-tf`}
-                  className="form-radio"
-                />
-                <label htmlFor={`true-${question.id}`}>True</label>
+                <RadioGroupItem value="true" id="true" />
+                <Label htmlFor="true">True</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  id={`false-${question.id}`}
-                  value="false"
-                  checked={question.correctAnswer === "false"}
-                  onChange={(e) => onUpdate({ correctAnswer: e.target.value })}
-                  name={`question-${question.id}-tf`}
-                  className="form-radio"
-                />
-                <label htmlFor={`false-${question.id}`}>False</label>
+                <RadioGroupItem value="false" id="false" />
+                <Label htmlFor="false">False</Label>
               </div>
-            </div>
+            </RadioGroup>
           </div>
         )}
 
         {/* Essay */}
-        {question.type === "essay" && (
+        {safeQuestion.type === "essay" && (
           <div className="space-y-2">
-            <label>Sample Answer (optional)</label>
-            <textarea
-              value={question.correctAnswer || ""}
+            <Label>Sample Answer (optional)</Label>
+            <Textarea
+              value={safeQuestion.correctAnswer}
               onChange={(e) => onUpdate({ correctAnswer: e.target.value })}
               placeholder="Enter sample answer or grading rubric..."
               rows={3}
-              className="form-textarea"
             />
           </div>
         )}
 
         {/* Fill in the blank */}
-        {question.type === "fill-blank" && (
+        {safeQuestion.type === "fill-blank" && (
           <div className="space-y-2">
-            <label>Correct Answer</label>
-            <input
-              type="text"
-              value={question.correctAnswer || ""}
+            <Label>Correct Answer</Label>
+            <Input
+              value={safeQuestion.correctAnswer}
               onChange={(e) => onUpdate({ correctAnswer: e.target.value })}
               placeholder="Enter correct answer..."
-              className="form-input"
             />
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               Use underscores (_____) in the question to mark blank spaces
             </p>
           </div>
         )}
 
         <div className="space-y-2">
-          <label>Explanation (optional)</label>
-          <textarea
-            value={question.explanation || ""}
+          <Label>Explanation (optional)</Label>
+          <Textarea
+            value={safeQuestion.explanation}
             onChange={(e) => onUpdate({ explanation: e.target.value })}
             placeholder="Explain the answer or provide additional information..."
             rows={2}
-            className="form-textarea"
           />
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
-};
-
-QuestionEditor.propTypes = {
-  question: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    type: PropTypes.oneOf(['multiple-choice', 'true-false', 'essay', 'fill-blank']).isRequired,
-    question: PropTypes.string.isRequired,
-    options: PropTypes.arrayOf(PropTypes.string),
-    correctAnswer: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
-    explanation: PropTypes.string,
-    points: PropTypes.number.isRequired,
-    order: PropTypes.number.isRequired
-  }).isRequired,
-  onUpdate: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired
-};
-
-export default QuestionEditor;
+}

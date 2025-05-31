@@ -127,3 +127,5 @@ exports.verifyRefreshToken = async (req, res, next) => {
         });
     }
 };
+
+exports.authenticate = exports.protect;

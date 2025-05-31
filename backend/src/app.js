@@ -22,10 +22,14 @@ app.use('/uploads', express.static('uploads')); // serve static files from uploa
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const gpaRoutes = require('./routes/gpaRoutes');
+const practiceTestRoutes = require('./routes/practiceTestRoutes');
+const subjectRoutes = require('./routes/subjectRoutes');
 
 // Sử dụng routes
 app.use('/api/auth', authRoutes);
 app.use('/api/gpa', gpaRoutes);
+app.use('/api/practice-tests', practiceTestRoutes);
+app.use('/api/subjects', subjectRoutes);
 
 // Route mẫu kiểm tra
 app.get('/', (req, res) => {

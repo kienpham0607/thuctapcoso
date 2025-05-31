@@ -16,61 +16,12 @@ import {
   DialogActions,
   Grid,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
-
-// Mock questions data
-const mockQuestions = {
-  'database': {
-    1: [
-      {
-        id: 1,
-        question: 'What is SQL?',
-        options: [
-          'Structured Query Language',
-          'Simple Question Language',
-          'System Query Logic',
-          'Standard Query Library'
-        ],
-        correctAnswer: 'Structured Query Language'
-      },
-      {
-        id: 2,
-        question: 'Which SQL command is used to extract data from a database?',
-        options: ['SELECT', 'EXTRACT', 'GET', 'PULL'],
-        correctAnswer: 'SELECT'
-      }
-    ]
-  },
-  'web-security': {
-    1: [
-      {
-        id: 1,
-        question: 'What is XSS?',
-        options: [
-          'Cross-Site Scripting',
-          'Extended Style Sheets',
-          'XML Style System',
-          'Cross System Service'
-        ],
-        correctAnswer: 'Cross-Site Scripting'
-      },
-      {
-        id: 2,
-        question: 'What is the purpose of HTTPS?',
-        options: [
-          'To make websites load faster',
-          'To secure data transmission between client and server',
-          'To improve SEO rankings',
-          'To compress website content'
-        ],
-        correctAnswer: 'To secure data transmission between client and server'
-      }
-    ]
-  }
-};
+import { getPracticeTestById } from '../../apis/practiceTestApi';
 
 export default function TestQuestions() {
   const { subject, testId } = useParams();
@@ -80,9 +31,72 @@ export default function TestQuestions() {
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes in seconds
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  const questions = mockQuestions[subject]?.[testId] || [];
-  
+  useEffect(() => {
+    const fetchTest = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getPracticeTestById(testId);
+        
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to fetch test');
+        }
+
+        const testData = response.data;
+        if (!testData || !Array.isArray(testData.questions)) {
+          throw new Error('Invalid test data format');
+        }
+
+        // Transform questions to ensure consistent format
+        const transformedQuestions = testData.questions.map((q, index) => {
+          // Ensure options are strings and handle nested objects
+          const options = Array.isArray(q.options) 
+            ? q.options.map(opt => {
+                if (opt === null || opt === undefined) return '';
+                if (typeof opt === 'object') {
+                  try {
+                    return JSON.stringify(opt);
+                  } catch (e) {
+                    console.error('Error stringifying option:', opt);
+                    return '';
+                  }
+                }
+                return String(opt);
+              })
+            : [];
+
+          return {
+            id: String(q._id || `q-${index}`),
+            questionText: String(q.questionText || ''),
+            options: options,
+            correctAnswer: String(q.correctAnswer || ''),
+            explanation: String(q.explanation || '')
+          };
+        });
+
+        console.log('Transformed questions:', transformedQuestions);
+        setQuestions(transformedQuestions);
+      } catch (err) {
+        console.error('Error fetching test:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTest();
+  }, [testId]);
+
+  // Reset current question when questions change
+  useEffect(() => {
+    setCurrentQuestion(0);
+    setAnswers({});
+  }, [questions]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -124,6 +138,44 @@ export default function TestQuestions() {
   const calculateProgress = () => {
     return (Object.keys(answers).length / questions.length) * 100;
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f5f5f5'
+      }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f5f5', py: 4 }}>
+        <Container maxWidth="md">
+          <Card sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" color="error" gutterBottom>
+              Error Loading Test
+            </Typography>
+            <Typography color="text.secondary" paragraph>
+              {error}
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => navigate(`/practice/${subject}`)}
+              sx={{ mt: 2 }}
+            >
+              Back to Tests
+            </Button>
+          </Card>
+        </Container>
+      </Box>
+    );
+  }
 
   if (showResults) {
     const score = questions.reduce((acc, question) => {
@@ -190,6 +242,28 @@ export default function TestQuestions() {
                 Back to Tests
               </Button>
             </CardContent>
+          </Card>
+        </Container>
+      </Box>
+    );
+  }
+
+  // Add validation before rendering
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f5f5', py: 4 }}>
+        <Container maxWidth="md">
+          <Card sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" color="error">
+              No questions available for this test.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => navigate(`/practice/${subject}`)}
+              sx={{ mt: 2 }}
+            >
+              Back to Tests
+            </Button>
           </Card>
         </Container>
       </Box>
@@ -283,17 +357,17 @@ export default function TestQuestions() {
                 Question {currentQuestion + 1}
               </Typography>
               <Typography variant="h6" gutterBottom>
-                {questions[currentQuestion].question}
+                {questions[currentQuestion].questionText}
               </Typography>
 
               <RadioGroup
-                value={answers[questions[currentQuestion].id] || ''}
+                value={String(answers[questions[currentQuestion].id] || '')}
                 onChange={(e) => handleAnswerChange(questions[currentQuestion].id, e.target.value)}
               >
                 {questions[currentQuestion].options.map((option, index) => (
                   <FormControlLabel
                     key={index}
-                    value={option}
+                    value={String(option)}
                     control={
                       <Radio
                         sx={{
@@ -303,7 +377,7 @@ export default function TestQuestions() {
                         }}
                       />
                     }
-                    label={option}
+                    label={String(option)}
                     sx={{
                       my: 1,
                       py: 1,

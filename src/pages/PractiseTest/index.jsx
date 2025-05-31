@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import anh1 from '../../assets/anh1.png';
 import {
   Box,
@@ -18,9 +18,23 @@ import StorageIcon from '@mui/icons-material/Storage';
 import SecurityIcon from '@mui/icons-material/Security';
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import GavelIcon from '@mui/icons-material/Gavel';
+import { getAllPracticeTests } from '../../apis/practiceTestApi';
 
 export default function PractiseTests() {
   const navigate = useNavigate();
+
+  const [tests, setTests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTests = async () => {
+      setLoading(true);
+      const res = await getAllPracticeTests();
+      if (res.success) setTests(res.data);
+      setLoading(false);
+    };
+    fetchTests();
+  }, []);
 
   const subjects = [
     {
@@ -367,6 +381,43 @@ export default function PractiseTests() {
             </Grid>
           </Box>
         </Box>
+      </Container>
+
+      <Container maxWidth="lg" sx={{ mt: 8 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+          Danh sách bài Practice Test (hiện tại)
+        </Typography>
+        {loading ? (
+          <Typography>Đang tải...</Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {tests.filter(test => test.status === 'active').length === 0 && (
+              <Grid item xs={12}>
+                <Typography color="text.secondary">Chưa có bài test nào được duyệt.</Typography>
+              </Grid>
+            )}
+            {tests.filter(test => test.status === 'active').map(test => (
+              <Grid item xs={12} md={6} lg={4} key={test._id}>
+                <Card
+                  sx={{ cursor: 'pointer', borderRadius: 2, mb: 2, '&:hover': { boxShadow: 6 } }}
+                  onClick={() => navigate(`/practice-test/${test._id}`)}
+                >
+                  <CardContent>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {test.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {test.description}
+                    </Typography>
+                    <Typography variant="caption" color="primary">
+                      Chủ đề: {test.subject}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
       </Container>
     </Box>
   );

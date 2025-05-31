@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './tests-management.css';
 import TestForm from './TestForm';
 import TestAnalytics from '../test-analytics/TestAnalytics';
@@ -23,6 +23,7 @@ import {
   BarChart as BarChartIcon,
   MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
+import { getAllPracticeTests, createPracticeTest, updatePracticeTest, deletePracticeTest, getPracticeTestById } from '../../apis/practiceTestApi';
 
 // Mock data
 const practiceTests = [
@@ -52,31 +53,92 @@ const practiceTests = [
   },
 ];
 
+const convertTestFromBackend = (test) => ({
+  ...test,
+  questions: (test.questions || []).map((q, idx) => ({
+    id: q._id || Date.now() + idx,
+    type: q.type || "multiple-choice",
+    question: String(q.questionText || q.question || ""),
+    options: Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
+    correctAnswer: String(q.correctAnswer || ""),
+    points: Number(q.points || 1),
+    order: Number(q.order || idx + 1),
+    explanation: String(q.explanation || ""),
+  })),
+});
+
 const TestsManagement = () => {
   const [view, setView] = useState("list");
   const [selectedTest, setSelectedTest] = useState(null);
-  const [testsList, setTestsList] = useState(practiceTests);
+  const [testsList, setTestsList] = useState([]);
   const [anchorMoreMenu, setAnchorMoreMenu] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [editingTest, setEditingTest] = useState(null);
+  const [openForm, setOpenForm] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Load tests from API
+  useEffect(() => {
+    const fetchTests = async () => {
+      try {
+        setLoading(true);
+        const res = await getAllPracticeTests();
+        if (res.success) {
+          console.log('Fetched tests:', res.data);
+          setTestsList(res.data);
+        } else {
+          throw new Error('Failed to fetch tests');
+        }
+      } catch (error) {
+        console.error('Error fetching tests:', error);
+        setSnackbar({
+          open: true,
+          message: error.message || 'Failed to fetch tests',
+          severity: 'error'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTests();
+  }, []);
 
   const handleCreateTest = () => {
     setSelectedTest(null);
     setView("create");
   };
 
-  const handleEditTest = (test) => {
-    setSelectedTest(test);
-    setView("edit");
-    handleMoreMenuClose();
+  const handleEditTest = async (test) => {
+    try {
+      setLoading(true);
+      const response = await getPracticeTestById(test._id);
+      if (response.success) {
+        setSelectedTest(convertTestFromBackend(response.data));
+        setView("edit");
+      } else {
+        throw new Error('Failed to fetch test details');
+      }
+    } catch (error) {
+      console.error('Error fetching test:', error);
+      setSnackbar({
+        open: true,
+        message: error.message || 'Failed to fetch test details',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+      handleMoreMenuClose();
+    }
   };
 
   const handleViewTest = (testId) => {
-    const test = testsList.find(t => t.id === testId);
-    setSelectedTest(test);
+    const test = testsList.find(t => t._id === testId);
+    setSelectedTest(convertTestFromBackend(test));
     setView("view");
   };
 
   const handleViewAnalytics = (testId) => {
-    const test = testsList.find(t => t.id === testId);
+    const test = testsList.find(t => t._id === testId);
     setSelectedTest(test);
     setView("analytics");
   };
@@ -90,26 +152,74 @@ const TestsManagement = () => {
     setAnchorMoreMenu(null);
   };
 
-  const handleDeleteTest = (testId) => {
-    setTestsList(testsList.filter((t) => t.id !== testId));
+  const handleDeleteTest = async (testId) => {
+    await deletePracticeTest(testId);
+    setTestsList(testsList.filter((t) => t._id !== testId));
     handleMoreMenuClose();
   };
 
-  const handleSaveTest = (test) => {
-    if (test.id) {
-      setTestsList(testsList.map((t) => (t.id === test.id ? { ...t, ...test } : t)));
-    } else {
-      const newTest = {
-        ...test,
-        id: Date.now(),
-        createdAt: new Date().toISOString().split("T")[0],
-        attempts: 0,
-        avgScore: 0,
-        questions: test.questions.length,
-      };
-      setTestsList([newTest, ...testsList]);
+  const handleSaveTest = async (testData) => {
+    try {
+      setLoading(true);
+      console.log('Saving test data:', testData);
+      
+      let response;
+      if (selectedTest?._id) {
+        // Update existing test
+        console.log('Updating test with ID:', selectedTest._id);
+        response = await updatePracticeTest(selectedTest._id, testData);
+        console.log('Update response:', response);
+        
+        if (response.success) {
+          // Fetch updated test list
+          const updatedTestsResponse = await getAllPracticeTests();
+          if (updatedTestsResponse.success) {
+            console.log('Updated tests list:', updatedTestsResponse.data);
+            setTestsList(updatedTestsResponse.data);
+          }
+          setSnackbar({
+            open: true,
+            message: 'Test updated successfully',
+            severity: 'success'
+          });
+        } else {
+          throw new Error(response.message || 'Failed to update test');
+        }
+      } else {
+        // Create new test
+        console.log('Creating new test');
+        response = await createPracticeTest(testData);
+        console.log('Create response:', response);
+        
+        if (response.success) {
+          // Fetch updated test list
+          const updatedTestsResponse = await getAllPracticeTests();
+          if (updatedTestsResponse.success) {
+            console.log('Updated tests list:', updatedTestsResponse.data);
+            setTestsList(updatedTestsResponse.data);
+          }
+          setSnackbar({
+            open: true,
+            message: 'Test created successfully',
+            severity: 'success'
+          });
+        } else {
+          throw new Error(response.message || 'Failed to create test');
+        }
+      }
+
+      setView("list");
+      setSelectedTest(null);
+    } catch (error) {
+      console.error('Error saving test:', error);
+      setSnackbar({
+        open: true,
+        message: error.message || 'Failed to save test',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
-    setView("list");
   };
 
   if (view === "create" || view === "edit") {
@@ -217,74 +327,87 @@ const TestsManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {testsList.map((test) => (
-                <tr key={test.id}>
-                  <td>
-                    <div>
-                      <div className="font-medium">{test.title}</div>
-                      <div className="text-sm text-muted line-clamp-1">
-                        {test.description}
+              {testsList.map((test) => {
+                const convertedTest = convertTestFromBackend(test);
+                console.log('Rendering test:', test);
+                return (
+                  <tr key={test._id}>
+                    <td>
+                      <div>
+                        <div className="font-medium">{String(test.title || '')}</div>
+                        <div className="text-sm text-muted line-clamp-1">
+                          {String(test.description || '')}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-1">
-                      <HelpIcon fontSize="small" />
-                      {test.questions}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-1">
-                      <GroupIcon fontSize="small" />
-                      {test.attempts}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-1">
-                      <span
-                        className={`font-medium ${
-                          test.avgScore >= test.passingScore
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {test.avgScore}%
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-1">
-                      <AccessTimeIcon fontSize="small" />
-                      {test.timeLimit}m
-                    </div>
-                  </td>
-                  <td>{test.passingScore}%</td>
-                  <td>
-                    <span
-                      className={`badge ${
-                        test.status === "active"
-                          ? "badge-success"
-                          : test.status === "draft"
-                          ? "badge-warning"
-                          : "badge-secondary"
-                      }`}
-                    >
-                      {test.status}
-                    </span>
-                  </td>
-                  <td>{test.createdAt}</td>
-                  <td>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <HelpIcon fontSize="small" />
+                        {String(convertedTest.questions.length)}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <GroupIcon fontSize="small" />
+                        {String(test.attempts || 0)}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`font-medium ${
+                            Number(test.avgScore || 0) >= Number(test.passingScore || 0)
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {String(test.avgScore || 0)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <AccessTimeIcon fontSize="small" />
+                        {String(test.timeLimit || 0)} min
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <CheckCircleIcon fontSize="small" />
+                        {String(test.passingScore || 0)}%
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            test.status === 'active'
+                              ? 'bg-green-100 text-green-800'
+                              : test.status === 'draft'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {String(test.status || 'draft')}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="text-sm text-muted">
+                        {new Date(test.createdAt).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="text-right">
                       <IconButton
                         size="small"
-                        onClick={(event) => handleMoreMenuOpen(event, test)}
+                        onClick={(e) => handleMoreMenuOpen(e, test)}
                       >
                         <MoreVertIcon />
                       </IconButton>
-                    </Box>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -295,11 +418,11 @@ const TestsManagement = () => {
         open={Boolean(anchorMoreMenu)}
         onClose={handleMoreMenuClose}
       >
-        <MenuItem onClick={() => handleViewTest(selectedTest?.id)}>
+        <MenuItem onClick={() => handleViewTest(selectedTest?._id)}>
           <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
           View Test
         </MenuItem>
-        <MenuItem onClick={() => handleViewAnalytics(selectedTest?.id)}>
+        <MenuItem onClick={() => handleViewAnalytics(selectedTest?._id)}>
           <BarChartIcon fontSize="small" sx={{ mr: 1 }} />
           View Analytics
         </MenuItem>
@@ -307,7 +430,7 @@ const TestsManagement = () => {
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Edit Test
         </MenuItem>
-        <MenuItem onClick={() => handleDeleteTest(selectedTest?.id)}>
+        <MenuItem onClick={() => handleDeleteTest(selectedTest?._id)}>
           <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
           Delete Test
         </MenuItem>

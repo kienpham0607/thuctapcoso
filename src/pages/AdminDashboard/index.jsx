@@ -3,6 +3,7 @@ import TestsManagement from '../../components/tests-management';
 import { OverviewTab } from '../../components/overview-tab';
 import { ProfileContent } from './ProfileContent'; // Updated import
 import UserManagement from '../../components/user-management/UserManagement';
+import SubjectManagement from '../../components/SubjectManagement';
 import {
   Box,
   Drawer,
@@ -97,7 +98,7 @@ const AdminDashboard = () => { // Renamed component
     { id: 'tests', text: 'Practice Tests', icon: <DescriptionIcon /> },
     { id: 'users', text: 'User Management', icon: <GroupIcon /> },
     { id: 'profile', text: 'Profile', icon: <AccountCircleIcon /> },
-    { id: 'settings', text: 'Settings', icon: <SettingsIcon /> }
+    { id: 'settings', text: 'Subjects', icon: <SettingsIcon /> }
   ];
 
   const drawer = (
@@ -281,6 +282,7 @@ const AdminDashboard = () => { // Renamed component
         {/* Always display User Management for Admin */}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'profile' && <ProfileContent />}
+        {activeTab === 'settings' && <SubjectManagement />}
       </Box>
     </Box>
   );
