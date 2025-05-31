@@ -11,7 +11,7 @@ import {
   Fade,
   Zoom
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import BookIcon from '@mui/icons-material/Book';
 import NetworkCheckIcon from '@mui/icons-material/NetworkCheck';
 import StorageIcon from '@mui/icons-material/Storage';
@@ -19,12 +19,15 @@ import SecurityIcon from '@mui/icons-material/Security';
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import GavelIcon from '@mui/icons-material/Gavel';
 import { getAllPracticeTests } from '../../apis/practiceTestApi';
+import { getAllSubjects } from '../../apis/subjectApi';
 
 export default function PractiseTests() {
   const navigate = useNavigate();
-
+  const { subject } = useParams();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subjects, setSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
 
   useEffect(() => {
     const fetchTests = async () => {
@@ -36,50 +39,49 @@ export default function PractiseTests() {
     fetchTests();
   }, []);
 
-  const subjects = [
-    {
-      name: "Database",
-      description: "Test your knowledge of databases, SQL, and data management",
-      path: "/practice/database",
-      icon: StorageIcon,
-      color: '#2563eb'
-    },
-    {
-      name: "Marxist-Leninist Political Economy",
-      description: "Review basic concepts and principles of Marxist-Leninist political economy",
-      path: "/practice/political-economy",
-      icon: BookIcon,
-      color: '#16977D'
-    },
-    {
-      name: "Computer Networks",
-      description: "Practice exercises on computer networks, protocols, and network security",
-      path: "/practice/computer-networks",
-      icon: NetworkCheckIcon,
-      color: '#9333ea'
-    },
-    {
-      name: "Web and Database Security",
-      description: "Practice web security and database protection",
-      path: "/practice/web-security",
-      icon: SecurityIcon,
-      color: '#e11d48'
-    },
-    {
-      name: "Party History",
-      description: "Review the history of the Communist Party of Vietnam",
-      path: "/practice/party-history",
-      icon: HistoryEduIcon,
-      color: '#ea580c'
-    },
-    {
-      name: "General Law",
-      description: "Learn about basic legal concepts and Vietnamese legal system",
-      path: "/practice/general-law",
-      icon: GavelIcon,
-      color: '#4f46e5'
-    }
-  ];
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      setLoadingSubjects(true);
+      const res = await getAllSubjects();
+      if (res.success && Array.isArray(res.data)) {
+        // Map icons/colors by subject code or name if needed
+        const iconMap = {
+          'database': StorageIcon,
+          'computer-networks': NetworkCheckIcon,
+          'web-security': SecurityIcon,
+          'party-history': HistoryEduIcon,
+          'general-law': GavelIcon,
+          'political-economy': BookIcon,
+        };
+        const colorMap = {
+          'database': '#2563eb',
+          'computer-networks': '#9333ea',
+          'web-security': '#e11d48',
+          'party-history': '#ea580c',
+          'general-law': '#4f46e5',
+          'political-economy': '#16977D',
+        };
+        const iconList = [BookIcon, NetworkCheckIcon, StorageIcon, SecurityIcon, HistoryEduIcon, GavelIcon];
+        setSubjects(res.data.map((subj, idx) => {
+          let icon = iconMap[subj.code];
+          if (!icon) {
+            // Pick a random icon for unknown codes
+            icon = iconList[Math.floor(Math.random() * iconList.length)];
+          }
+          return {
+            ...subj,
+            icon,
+            color: colorMap[subj.code] || '#2563eb',
+            path: `/practice/${subj.code}`,
+          };
+        }));
+      } else {
+        setSubjects([]);
+      }
+      setLoadingSubjects(false);
+    };
+    fetchSubjects();
+  }, []);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
@@ -132,77 +134,81 @@ export default function PractiseTests() {
           </Fade>
 
           <Grid container spacing={3} sx={{ mt: 2 }}>
-            {subjects.map((subject, index) => (
-              <Grid item xs={12} sm={6} lg={4} key={index}>
-                <Zoom in={true} style={{ transitionDelay: `${index * 100}ms` }}>
-                  <Card
-                    elevation={0}
-                    sx={{
-                      cursor: 'pointer',
-                      height: '100%',
-                      borderRadius: 3,
-                      background: 'rgba(255,255,255,0.95)',
-                      backdropFilter: 'blur(10px)',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                      '&:hover': {
-                        transform: 'translateY(-8px)',
-                        boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
-                        '& .subject-icon': {
-                          transform: 'scale(1.1)'
-                        }
-                      }
-                    }}
-                    onClick={() => navigate(subject.path)}
-                  >
-                    <CardContent sx={{ p: 3 }}>
-                      <Box
-                        sx={{
-                          width: 56,
-                          height: 56,
-                          borderRadius: 2,
-                          mb: 2,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: `${subject.color}15`,
-                          color: subject.color
-                        }}
-                      >
-                        {React.createElement(subject.icon, {
-                          className: 'subject-icon',
-                          sx: {
-                            fontSize: 32,
-                            transition: 'transform 0.3s ease'
+            {loadingSubjects ? (
+              <Typography>Loading subjects...</Typography>
+            ) : (
+              subjects.map((subject, index) => (
+                <Grid item xs={12} sm={6} lg={4} key={index}>
+                  <Zoom in={true} style={{ transitionDelay: `${index * 100}ms` }}>
+                    <Card
+                      elevation={0}
+                      sx={{
+                        cursor: 'pointer',
+                        height: '100%',
+                        borderRadius: 3,
+                        background: 'rgba(255,255,255,0.95)',
+                        backdropFilter: 'blur(10px)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
+                          '& .subject-icon': {
+                            transform: 'scale(1.1)'
                           }
-                        })}
-                      </Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 700,
-                          mb: 1,
-                          color: '#1e293b'
-                        }}
-                      >
-                        {subject.name}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: '#64748b',
-                          lineHeight: 1.6
-                        }}
-                      >
-                        {subject.description}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Zoom>
-              </Grid>
-            ))}
+                        }
+                      }}
+                      onClick={() => navigate(subject.path)}
+                    >
+                      <CardContent sx={{ p: 3 }}>
+                        <Box
+                          sx={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 2,
+                            mb: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: `${subject.color}15`,
+                            color: subject.color
+                          }}
+                        >
+                          {React.createElement(subject.icon, {
+                            className: 'subject-icon',
+                            sx: {
+                              fontSize: 32,
+                              transition: 'transform 0.3s ease'
+                            }
+                          })}
+                        </Box>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 1,
+                            color: '#1e293b'
+                          }}
+                        >
+                          {subject.label}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: '#64748b',
+                            lineHeight: 1.6
+                          }}
+                        >
+                          {subject.description}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Zoom>
+                </Grid>
+              ))
+            )}
           </Grid>
         </Container>
       </Box>
@@ -385,22 +391,22 @@ export default function PractiseTests() {
 
       <Container maxWidth="lg" sx={{ mt: 8 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-          Danh sách bài Practice Test (hiện tại)
+          Danh sách bài Practice Test {subject ? `cho chủ đề: ${subject}` : ''}
         </Typography>
         {loading ? (
           <Typography>Đang tải...</Typography>
         ) : (
           <Grid container spacing={2}>
-            {tests.filter(test => test.status === 'active').length === 0 && (
+            {tests.filter(test => test.status === 'active' && (!subject || test.subject === subject)).length === 0 && (
               <Grid item xs={12}>
                 <Typography color="text.secondary">Chưa có bài test nào được duyệt.</Typography>
               </Grid>
             )}
-            {tests.filter(test => test.status === 'active').map(test => (
+            {tests.filter(test => test.status === 'active' && (!subject || test.subject === subject)).map(test => (
               <Grid item xs={12} md={6} lg={4} key={test._id}>
                 <Card
                   sx={{ cursor: 'pointer', borderRadius: 2, mb: 2, '&:hover': { boxShadow: 6 } }}
-                  onClick={() => navigate(`/practice-test/${test._id}`)}
+                  onClick={() => navigate(`/practice/${test.subject}/test/${test._id}`)}
                 >
                   <CardContent>
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>

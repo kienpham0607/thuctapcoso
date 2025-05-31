@@ -1,35 +1,53 @@
 import * as React from "react"
-import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
-import { Circle } from "lucide-react"
 import { cn } from "../../utils/cn"
 
-const RadioGroup = React.forwardRef(({ className, ...props }, ref) => {
-  return (
-    <RadioGroupPrimitive.Root
-      className={cn("grid gap-2", className)}
-      {...props}
-      ref={ref}
-    />
-  )
-})
-RadioGroup.displayName = RadioGroupPrimitive.Root.displayName
+const RadioGroupContext = React.createContext(null);
 
-const RadioGroupItem = React.forwardRef(({ className, ...props }, ref) => {
+const RadioGroup = React.forwardRef(({ value, onValueChange, className, ...props }, ref) => {
   return (
-    <RadioGroupPrimitive.Item
+    <RadioGroupContext.Provider value={{ value, onValueChange }}>
+      <div 
+        ref={ref}
+        role="radiogroup"
+        className={cn("grid gap-2", className)}
+        {...props}
+      />
+    </RadioGroupContext.Provider>
+  );
+});
+RadioGroup.displayName = "RadioGroup";
+
+const RadioGroupItem = React.forwardRef(({ className, value, children, ...props }, ref) => {
+  const context = React.useContext(RadioGroupContext);
+  const checked = context?.value === value;
+
+  return (
+    <button
       ref={ref}
+      role="radio"
+      aria-checked={checked}
+      data-state={checked ? "checked" : "unchecked"}
       className={cn(
-        "aspect-square h-4 w-4 rounded-full border border-primary text-primary ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "group relative rounded-full",
+        "h-4 w-4 border",
+        "border-primary text-primary",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
+      onClick={() => context?.onValueChange?.(value)}
+      type="button"
       {...props}
     >
-      <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-        <Circle className="h-2.5 w-2.5 fill-current text-current" />
-      </RadioGroupPrimitive.Indicator>
-    </RadioGroupPrimitive.Item>
-  )
-})
-RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName
+      {checked && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="h-2.5 w-2.5 rounded-full bg-current"/>
+        </span>
+      )}
+      {children}
+    </button>
+  );
+});
+RadioGroupItem.displayName = "RadioGroupItem";
 
-export { RadioGroup, RadioGroupItem }
+export { RadioGroup, RadioGroupItem };

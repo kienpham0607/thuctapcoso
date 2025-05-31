@@ -10,22 +10,31 @@ import { Checkbox } from "../ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Plus, Save, X, HelpCircle } from "lucide-react";
 import { QuestionEditor } from "./QuestionEditor";
-
-const SUBJECTS = [
-  { value: 'database', label: 'Database' },
-  { value: 'political-economy', label: 'Marxist-Leninist Political Economy' },
-  { value: 'computer-networks', label: 'Computer Networks' },
-  { value: 'web-security', label: 'Web and Database Security' },
-  { value: 'party-history', label: 'Party History' },
-  { value: 'general-law', label: 'General Law' },
-];
+import { getAllSubjects } from '../../apis/subjectApi';
 
 export default function TestForm({ test, onSave, onCancel }) {
+  const [subjects, setSubjects] = useState([]);
+  const [subjectsLoading, setSubjectsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      setSubjectsLoading(true);
+      const res = await getAllSubjects();
+      if (res.success && Array.isArray(res.data)) {
+        setSubjects(res.data);
+      } else {
+        setSubjects([]);
+      }
+      setSubjectsLoading(false);
+    };
+    fetchSubjects();
+  }, []);
+
   const [formData, setFormData] = useState(
     test || {
       title: "",
       description: "",
-      subject: SUBJECTS[0].value,
+      subject: "",
       timeLimit: 30,
       passingScore: 70,
       status: "draft",
@@ -37,13 +46,19 @@ export default function TestForm({ test, onSave, onCancel }) {
   );
 
   useEffect(() => {
+    if (!formData.subject && subjects.length > 0) {
+      setFormData((prev) => ({ ...prev, subject: subjects[0].value }));
+    }
+  }, [subjects]);
+
+  useEffect(() => {
     if (test) {
       // First normalize the test data
       const normalizedTest = {
         ...test,
         title: String(test.title || ''),
         description: String(test.description || ''),
-        subject: String(test.subject || SUBJECTS[0].value),
+        subject: String(test.subject || subjects[0]?.value || ''),
         timeLimit: Number(test.timeLimit || 30),
         passingScore: Number(test.passingScore || 70),
         status: String(test.status || 'draft'),
@@ -119,7 +134,7 @@ export default function TestForm({ test, onSave, onCancel }) {
     const normalizedFormData = {
       title: String(formData.title || ''),
       description: String(formData.description || ''),
-      subject: String(formData.subject || SUBJECTS[0].value),
+      subject: String(formData.subject || subjects[0]?.value || ''),
       timeLimit: Number(formData.timeLimit || 30),
       passingScore: Number(formData.passingScore || 70),
       status: String(formData.status || 'draft'),
@@ -196,19 +211,25 @@ export default function TestForm({ test, onSave, onCancel }) {
             <CardContent className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="subject">Subject</Label>
-                <Select
-                  value={formData.subject}
-                  onValueChange={(value) => setFormData({ ...formData, subject: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SUBJECTS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {subjectsLoading ? (
+                  <div>Loading subjects...</div>
+                ) : (
+                  <Select
+                    value={formData.subject}
+                    onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                  >
+                    <SelectTrigger id="subject">
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="title">Test Title</Label>

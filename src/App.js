@@ -15,6 +15,7 @@ import TestQuestions from './components/TestQuestions';
 import PrivateRoute from './utils/PrivateRoute';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import PracticeBySubject from './pages/PracticeBySubject';
 
 function App() {
   return (
@@ -61,7 +62,7 @@ function App() {
           element={
             <PrivateRoute>
               <Header />
-              <TestList />
+              <PracticeBySubject />
             </PrivateRoute>
           }
         />
