@@ -77,4 +77,12 @@ export const getDashboardStats = async () => {
     console.error('Error fetching dashboard stats:', error);
     return { success: false, message: error.message };
   }
-}; 
+};
+
+export async function getPracticeTestAnalytics(testId) {
+  const token = localStorage.getItem('accessToken');
+  const res = await fetch(`${API_BASE}/${testId}/analytics`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  return res.json();
+} 

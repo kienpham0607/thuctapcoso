@@ -60,7 +60,7 @@ function UserMenu() {
       });
       items.push({
         icon: <PersonIcon />,
-        text: 'Hồ sơ cá nhân',
+        text: 'Personal Profile',
         onClick: () => handleNavigation('/personal-profile'),
       });
        items.push({
@@ -87,7 +87,7 @@ function UserMenu() {
       });
       items.push({
         icon: <PersonIcon />,
-        text: 'Hồ sơ cá nhân',
+        text: 'Personal Profile',
         onClick: () => handleNavigation('/personal-profile'),
       });
        items.push({
@@ -102,7 +102,7 @@ function UserMenu() {
       { type: 'divider' },
       {
         icon: <LogoutIcon />,
-        text: 'Đăng xuất',
+        text: 'Sign Out',
         onClick: handleLogout,
       }
     );

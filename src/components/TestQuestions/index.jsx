@@ -277,7 +277,7 @@ function TestTakingInterface({ testData, onExit }) {
       // Tính điểm
       let correct = 0;
       testData.questions.forEach((question) => {
-        const userAnswer = answers[question.id];
+        const userAnswer = answers[question._id];
         if (userAnswer === question.correctAnswer) correct++;
       });
       const score = Math.round((correct / testData.questions.length) * 100);
@@ -491,7 +491,8 @@ export default function TestQuestions() {
         testData = {
           ...testData,
           questions: testData.questions.map(q => ({
-            id: q.id || Math.random().toString(),
+            _id: q._id,
+            id: q._id,
             type: q.type || 'multiple-choice',
             questionText: q.questionText || '',
             options: Array.isArray(q.options) ? q.options : [],

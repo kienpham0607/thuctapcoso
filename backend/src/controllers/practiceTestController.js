@@ -159,6 +159,13 @@ exports.submitPracticeTestResult = async (req, res) => {
         submittedAt: new Date()
       });
     }
+    console.log('[SUBMIT RESULT] testId:', testId, 'userId:', userId);
+    console.log('[SUBMIT RESULT] answers:', answers);
+    if (answers && typeof answers === 'object') {
+      Object.entries(answers).forEach(([k, v]) => {
+        console.log(`[SUBMIT RESULT] answer key:`, k, 'typeof:', typeof k, '| value:', v, 'typeof:', typeof v);
+      });
+    }
     console.log('PracticeTestResult saved:', result); // Debug log
     res.json({ success: true, data: result });
   } catch (err) {
@@ -193,6 +200,143 @@ exports.getDashboardStats = async (req, res) => {
         avgScore,
         totalStudents,
         totalTeachers
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// API analytics cho 1 bài practice test
+exports.getPracticeTestAnalytics = async (req, res) => {
+  try {
+    const testId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(testId)) {
+      return res.status(400).json({ success: false, message: 'Invalid test id' });
+    }
+    // Lấy test
+    const test = await PracticeTest.findById(testId);
+    if (!test) return res.status(404).json({ success: false, message: 'Practice test not found' });
+
+    // Lấy tất cả kết quả của test này
+    const results = await PracticeTestResult.find({ test: testId }).populate('user', 'fullName email avatar');
+    const totalAttempts = results.reduce((sum, r) => sum + (r.attempts || 1), 0);
+    const avgScore = results.length ? (results.reduce((sum, r) => sum + r.score, 0) / results.length) : 0;
+    const passScore = test.passingScore || 70;
+    const passCount = results.filter(r => r.score >= passScore).length;
+    const passRate = results.length ? (passCount / results.length) * 100 : 0;
+    const avgTimeSpent = results.length ? (results.reduce((sum, r) => sum + (r.timeSpent || 0), 0) / results.length) : 0;
+
+    // Phân phối điểm
+    const scoreDistribution = [
+      { range: '90-100', count: 0 },
+      { range: '80-89', count: 0 },
+      { range: '70-79', count: 0 },
+      { range: '60-69', count: 0 },
+      { range: '50-59', count: 0 },
+      { range: '0-49', count: 0 },
+    ];
+    results.forEach(r => {
+      if (r.score >= 90) scoreDistribution[0].count++;
+      else if (r.score >= 80) scoreDistribution[1].count++;
+      else if (r.score >= 70) scoreDistribution[2].count++;
+      else if (r.score >= 60) scoreDistribution[3].count++;
+      else if (r.score >= 50) scoreDistribution[4].count++;
+      else scoreDistribution[5].count++;
+    });
+    const total = results.length || 1;
+    scoreDistribution.forEach(d => d.percentage = Math.round((d.count / total) * 1000) / 10);
+
+    // Thống kê từng câu hỏi
+    const questionStats = (test.questions || []).map((q, idx) => {
+      let correct = 0, incorrect = 0, totalTime = 0, totalAns = 0;
+      let answerStats = {};
+      results.forEach(r => {
+        const ans = r.answers ? r.answers[q._id] : undefined;
+        if (ans !== undefined) {
+          totalAns++;
+          answerStats[ans] = (answerStats[ans] || 0) + 1;
+          if (Number(ans) === Number(q.correctAnswer)) correct++;
+          else incorrect++;
+          totalTime += r.timeSpent || 0;
+        }
+      });
+      // Tìm đáp án sai phổ biến nhất (không phải đáp án đúng)
+      let commonWrongAnswer = null;
+      let maxWrong = 0;
+      for (const [ans, cnt] of Object.entries(answerStats)) {
+        if (Number(ans) !== Number(q.correctAnswer) && cnt > maxWrong) {
+          maxWrong = cnt;
+          commonWrongAnswer = ans;
+        }
+      }
+      return {
+        id: q._id,
+        question: q.questionText,
+        type: q.type || 'multiple-choice',
+        correctRate: totalAns ? Math.round((correct / totalAns) * 100) : 0,
+        correctAnswers: correct,
+        incorrectAnswers: incorrect,
+        totalAnswers: totalAns,
+        correctAnswer: q.correctAnswer,
+        answerStats, // { answer: count }
+        commonWrongAnswer: commonWrongAnswer || '',
+        avgTimeSpent: totalAns ? Math.round(totalTime / totalAns) : 0,
+      };
+    });
+
+    // Danh sách kết quả học sinh
+    const studentResults = results.map(r => ({
+      id: r._id,
+      name: r.user?.fullName || 'Unknown',
+      email: r.user?.email || '',
+      avatar: r.user?.avatar || '',
+      score: r.score,
+      percentage: r.score,
+      timeSpent: r.timeSpent,
+      completedAt: r.submittedAt,
+      status: r.score >= passScore ? 'passed' : 'failed',
+      correctAnswers: Object.values(r.answers || {}).filter((ans, i) => {
+        const q = test.questions.find(q => q._id.toString() === Object.keys(r.answers)[i]);
+        return q && ans === q.correctAnswer;
+      }).length,
+      incorrectAnswers: Object.values(r.answers || {}).filter((ans, i) => {
+        const q = test.questions.find(q => q._id.toString() === Object.keys(r.answers)[i]);
+        return q && ans !== q.correctAnswer;
+      }).length,
+      attempts: r.attempts || 1,
+    }));
+
+    results.forEach((r, idx) => {
+      console.log(`[ANALYTICS] Result #${idx} answers:`, r.answers);
+      if (r.answers && typeof r.answers === 'object') {
+        Object.entries(r.answers).forEach(([k, v]) => {
+          console.log(`[ANALYTICS] answer key:`, k, 'typeof:', typeof k, '| value:', v, 'typeof:', typeof v);
+        });
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        test: {
+          id: test._id,
+          title: test.title,
+          description: test.description,
+          createdAt: test.createdAt,
+          timeLimit: test.timeLimit,
+          passingScore: test.passingScore,
+          totalQuestions: test.questions.length,
+          maxScore: 100,
+          status: test.status,
+          attempts: totalAttempts,
+          avgScore: Math.round(avgScore * 10) / 10,
+          passRate: Math.round(passRate * 10) / 10,
+          avgTimeSpent: Math.round(avgTimeSpent * 10) / 10,
+        },
+        scoreDistribution,
+        questionAnalytics: questionStats,
+        studentResults,
       }
     });
   } catch (err) {

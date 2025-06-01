@@ -28,6 +28,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PersonIcon from '@mui/icons-material/Person';
 import SecurityIcon from '@mui/icons-material/Security';
+import { getUserProfileApi, updateUserProfileApi } from '../../apis/authApi';
 
 export default function MyAccount() {
   const user = useSelector(selectCurrentUser);
@@ -38,6 +39,17 @@ export default function MyAccount() {
     { id: 'personal', label: 'Personal Info', icon: <PersonIcon /> },
     { id: 'security', label: 'Security', icon: <SecurityIcon /> },
   ], []);
+
+  // State cho form Personal Info
+  const [profileForm, setProfileForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    bio: ''
+  });
+  const [profileMsg, setProfileMsg] = useState('');
+  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,6 +77,52 @@ export default function MyAccount() {
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, [menuItems]);
+
+  // Lấy thông tin user khi vào trang
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setProfileLoading(true);
+      try {
+        const res = await getUserProfileApi();
+        if (res.success) {
+          setProfileForm({
+            fullName: res.user.fullName || '',
+            email: res.user.email || '',
+            phone: res.user.phone || '',
+            address: res.user.address || '',
+            bio: res.user.bio || ''
+          });
+        }
+      } catch (err) {
+        setProfileMsg('Lỗi khi tải thông tin: ' + (err.message || ''));
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleProfileChange = (e) => {
+    setProfileForm({ ...profileForm, [e.target.name]: e.target.value });
+  };
+
+  const handleProfileSave = async (e) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    setProfileMsg('');
+    try {
+      const res = await updateUserProfileApi(profileForm);
+      if (res.success) {
+        setProfileMsg('Cập nhật thành công!');
+      } else {
+        setProfileMsg('Lỗi: ' + (res.message || 'Không rõ lỗi'));
+      }
+    } catch (err) {
+      setProfileMsg('Lỗi khi cập nhật: ' + (err.message || ''));
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   // Early return if not authenticated
   if (!user) {
@@ -413,137 +471,74 @@ export default function MyAccount() {
                 <Typography variant="h5" sx={{ mb: 4, fontWeight: 600, color: '#16977D' }}>
                   Personal Information
                 </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="First Name"
-                      defaultValue="John"
-                      variant="outlined"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#16977D',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#16977D',
-                          }
-                        }
-                      }}
-                    />
+                <form onSubmit={handleProfileSave}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Full Name"
+                        name="fullName"
+                        value={profileForm.fullName}
+                        onChange={handleProfileChange}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Email"
+                        name="email"
+                        value={profileForm.email}
+                        disabled
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Phone"
+                        name="phone"
+                        value={profileForm.phone}
+                        onChange={handleProfileChange}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Address"
+                        name="address"
+                        value={profileForm.address}
+                        onChange={handleProfileChange}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Bio"
+                        name="bio"
+                        multiline
+                        rows={4}
+                        value={profileForm.bio}
+                        onChange={handleProfileChange}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                        <Button type="submit" variant="contained" disabled={profileLoading}>
+                          {profileLoading ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                      </Box>
+                      {profileMsg && (
+                        <Typography sx={{ mt: 2 }} color={profileMsg.includes('thành công') ? 'success.main' : 'error.main'}>
+                          {profileMsg}
+                        </Typography>
+                      )}
+                    </Grid>
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Last Name"
-                      defaultValue="Doe"
-                      variant="outlined"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#16977D',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#16977D',
-                          }
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Email"
-                      type="email"
-                      defaultValue={user?.email}
-                      variant="outlined"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#16977D',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#16977D',
-                          }
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Phone"
-                      defaultValue="0123456789"
-                      variant="outlined"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#16977D',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#16977D',
-                          }
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Address"
-                      defaultValue="Hanoi, Vietnam"
-                      variant="outlined"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#16977D',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#16977D',
-                          }
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Bio"
-                      multiline
-                      rows={4}
-                      defaultValue="Computer Science student."
-                      variant="outlined"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#16977D',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#16977D',
-                          }
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                      <Button 
-                        variant="contained" 
-                        sx={{ 
-                          bgcolor: '#16977D',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            bgcolor: '#0d5c4d',
-                            transform: 'translateY(-1px)',
-                            boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-                          }
-                        }}
-                      >
-                        Save Changes
-                      </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
+                </form>
               </CardContent>
             </Card>
           </Box>

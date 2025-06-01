@@ -237,7 +237,7 @@ const TestsManagement = () => {
   if (view === "analytics") {
     return (
       <TestAnalytics
-        testData={selectedTest}
+        testId={selectedTest?._id}
         onBack={() => setView("list")}
       />
     );

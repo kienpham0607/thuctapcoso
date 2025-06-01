@@ -17,5 +17,7 @@ router.get('/:id', practiceTestController.getPracticeTestById);
 router.put('/:id', authenticate, practiceTestController.updatePracticeTest);
 // Xóa practice test (giáo viên)
 router.delete('/:id', authenticate, practiceTestController.deletePracticeTest);
+// Lấy analytics của 1 bài practice test
+router.get('/:id/analytics', practiceTestController.getPracticeTestAnalytics);
 
 module.exports = router; 
