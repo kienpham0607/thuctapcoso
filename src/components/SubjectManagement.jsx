@@ -16,6 +16,15 @@ const defaultSubjects = [
   { value: 'general-law', label: 'General Law', count: 10 },
 ];
 
+const iconList = [
+  'BookIcon',
+  'StorageIcon',
+  'NetworkCheckIcon',
+  'SecurityIcon',
+  'HistoryEduIcon',
+  'GavelIcon'
+];
+
 export default function SubjectManagement() {
   const [subjects, setSubjects] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -37,7 +46,8 @@ export default function SubjectManagement() {
   const handleAdd = async () => {
     if (!newSubject.trim() || subjects.some(s => s.label.toLowerCase() === newSubject.trim().toLowerCase())) return;
     const value = newSubject.trim().toLowerCase().replace(/\s+/g, '-');
-    const res = await createSubject({ label: newSubject.trim(), value });
+    const randomIcon = iconList[Math.floor(Math.random() * iconList.length)];
+    const res = await createSubject({ label: newSubject.trim(), value, icon: randomIcon });
     if (res.success) {
       setSubjects([...subjects, res.data]);
       setNewSubject('');

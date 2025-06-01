@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
@@ -18,36 +18,48 @@ import {
   Calendar,
 } from "lucide-react";
 import { getAllPracticeTests } from '../../apis/practiceTestApi';
+import ResultSummaryCard from "../TestQuestions/ResultSummaryCard";
 
 function TestList({ subject, title, description }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0); // Add refresh key
+
+  // Listen for navigation/focus events
+  useEffect(() => {
+    const handleFocus = () => {
+      setRefreshKey(prev => prev + 1); // Increment refresh key when window gains focus
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   useEffect(() => {
     const loadTests = async () => {
       setLoading(true);
       try {
-        const res = await getAllPracticeTests();
+        const res = await getAllPracticeTests({ subject, status: 'active' });
         if (res.success && Array.isArray(res.data)) {
-          // Filter by subject and status, and map fields for UI
-          const filtered = res.data.filter(
-            (t) => t.status === 'active' && t.subject === subject
-          ).map((t) => ({
+          console.log('API response:', res.data);
+          const mapped = res.data.map((t) => ({
             id: t._id,
             title: t.title,
             description: t.description,
-            duration: t.duration || 60,
+            duration: t.timeLimit || 60,
             questions: t.questions?.length || t.questionsCount || 0,
             difficulty: t.difficulty || 'Medium',
-            completed: t.completed || false, // You may need to adjust this based on user data
-            score: t.score || null, // You may need to adjust this based on user data
-            attempts: t.attempts || 0, // You may need to adjust this based on user data
+            completed: !!t.completed,
+            score: typeof t.score === 'number' ? t.score : null,
+            attempts: typeof t.attempts === 'number' ? t.attempts : 0,
             maxAttempts: t.maxAttempts || 3,
             dueDate: t.dueDate || new Date().toISOString(),
             topics: t.topics || [],
+            createdAt: t.createdAt,
           }));
-          setTests(filtered);
+          console.log('Mapped tests:', mapped);
+          setTests(mapped);
         } else {
           setTests([]);
         }
@@ -58,7 +70,7 @@ function TestList({ subject, title, description }) {
       }
     };
     loadTests();
-  }, [subject]);
+  }, [subject, refreshKey, location.pathname]); // Add refreshKey and location.pathname to dependencies
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -79,6 +91,11 @@ function TestList({ subject, title, description }) {
     if (score >= 70) return "text-yellow-600";
     return "text-red-600";
   };
+
+  // Tính số bài đã hoàn thành và điểm trung bình
+  const completedCount = tests.filter((t) => t.completed).length;
+  const scoredTests = tests.filter((t) => typeof t.score === 'number');
+  const averageScore = scoredTests.length > 0 ? Math.round(scoredTests.reduce((acc, t) => acc + t.score, 0) / scoredTests.length) : 0;
 
   if (loading) {
     return (
@@ -105,201 +122,126 @@ function TestList({ subject, title, description }) {
               <p className="text-gray-600">{description}</p>
             </div>
           </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Total tests</p>
-                    <p className="text-2xl font-bold">{tests.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Award className="w-5 h-5 text-green-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Completed</p>
-                    <p className="text-2xl font-bold">
-                      {tests.filter((t) => t.completed).length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Average score</p>
-                    <p className="text-2xl font-bold">
-                      {Math.round(
-                        tests.filter((t) => t.score).reduce((acc, t) => acc + t.score, 0) /
-                          tests.filter((t) => t.score).length
-                      ) || 0}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-orange-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Due soon</p>
-                    <p className="text-2xl font-bold">
-                      {tests.filter(
-                        (t) =>
-                          !t.completed &&
-                          new Date(t.dueDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                      ).length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* Tests Grid */}
         <div className="grid gap-6">
           {tests.map((test) => (
-            <Card key={test.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <CardTitle className="text-xl">{test.title}</CardTitle>
-                      <Badge className={getDifficultyColor(test.difficulty)}>
-                        {test.difficulty}
-                      </Badge>
-                      {test.completed && (
-                        <Badge className="bg-green-100 text-green-800 border-green-200">
-                          <Award className="w-3 h-3 mr-1" />
-                          Completed
-                        </Badge>
-                      )}
+            test.completed ? (
+              <ResultSummaryCard
+                key={test.id}
+                title={test.title}
+                difficulty={test.difficulty}
+                completed={test.completed}
+                score={test.score}
+                maxScore={100}
+                timeLimit={test.duration}
+                questionCount={test.questions}
+                attempts={test.attempts}
+                maxAttempts={test.maxAttempts}
+                dueDate={test.dueDate ? new Date(test.dueDate).toLocaleDateString("en-GB") : ""}
+                topics={test.topics || []}
+                onViewResult={() => navigate(`/practice/${subject}/test/${test.id}/review`)}
+                onViewDetail={() => navigate(`/practice/${subject}/test/${test.id}/review`)}
+              />
+            ) : (
+              <Card key={test.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <CardTitle className="text-xl">{test.title}</CardTitle>
+                        {test.completed && (
+                          <Badge className="bg-green-100 text-green-800 border-green-200">
+                            <Award className="w-3 h-3 mr-1" />
+                            Completed
+                          </Badge>
+                        )}
+                      </div>
+                      <CardDescription className="text-base">{test.description}</CardDescription>
                     </div>
-                    <CardDescription className="text-base">{test.description}</CardDescription>
+
+                    {test.completed && test.score && (
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${getScoreColor(test.score)}`}>
+                          {test.score}/100
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          Score
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-0">
+                  {/* Test Info */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Clock className="w-4 h-4" />
+                      <span>{test.duration} min</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <FileText className="w-4 h-4" />
+                      <span>{test.questions} questions</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Users className="w-4 h-4" />
+                      <span>
+                        {test.attempts ?? 0} attempts
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4" />
+                      <span>Created: {test.createdAt ? new Date(test.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}</span>
+                    </div>
                   </div>
 
-                  {test.completed && test.score && (
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${getScoreColor(test.score)}`}>
-                        {test.score}/100
+                  {/* Progress for completed tests */}
+                  {test.completed && (
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Completion progress</span>
+                        <span>100%</span>
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        Score
-                      </div>
+                      <Progress value={100} className="h-2" />
                     </div>
                   )}
-                </div>
-              </CardHeader>
 
-              <CardContent className="pt-0">
-                {/* Test Info */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
-                    <span>{test.duration} min</span>
-                  </div>
+                  <Separator className="my-4" />
 
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <FileText className="w-4 h-4" />
-                    <span>{test.questions} questions</span>
-                  </div>
+                  {/* Actions */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {!test.completed && test.attempts < test.maxAttempts && (
+                        <Button
+                          className="flex items-center gap-2"
+                          onClick={() => navigate(`/practice/${subject}/test/${test.id}`)}
+                        >
+                          <Play className="w-4 h-4" />
+                          {test.attempts === 0 ? "Start test" : "Retake"}
+                        </Button>
+                      )}
 
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Users className="w-4 h-4" />
-                    <span>
-                      {test.attempts}/{test.maxAttempts} attempts
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4" />
-                    <span>Due: {new Date(test.dueDate).toLocaleDateString("en-GB")}</span>
-                  </div>
-                </div>
-
-                {/* Topics */}
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Topics:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {test.topics.map((topic, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {topic}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Progress for completed tests */}
-                {test.completed && (
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Completion progress</span>
-                      <span>100%</span>
+                      {test.completed && (
+                        <Button
+                          variant="outline"
+                          className="flex items-center gap-2"
+                          onClick={() => navigate(`/practice/${subject}/test/${test.id}/review`)}
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          View result
+                        </Button>
+                      )}
                     </div>
-                    <Progress value={100} className="h-2" />
                   </div>
-                )}
-
-                <Separator className="my-4" />
-
-                {/* Actions */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    {!test.completed && test.attempts < test.maxAttempts && (
-                      <Button
-                        className="flex items-center gap-2"
-                        onClick={() => navigate(`/practice/${subject}/test/${test.id}`)}
-                      >
-                        <Play className="w-4 h-4" />
-                        {test.attempts === 0 ? "Start test" : "Retake"}
-                      </Button>
-                    )}
-
-                    {test.completed && (
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2"
-                        onClick={() => navigate(`/practice/${subject}/test/${test.id}/review`)}
-                      >
-                        <BookOpen className="w-4 h-4" />
-                        View result
-                      </Button>
-                    )}
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/practice/${subject}/test/${test.id}/detail`)}
-                    >
-                      Details
-                    </Button>
-                  </div>
-
-                  {new Date(test.dueDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) &&
-                    !test.completed && (
-                      <Badge variant="destructive" className="animate-pulse">
-                        Due soon
-                      </Badge>
-                    )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )
           ))}
         </div>
       </div>

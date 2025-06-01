@@ -13,11 +13,11 @@ exports.getAllSubjects = async (req, res) => {
 // Thêm subject mới
 exports.createSubject = async (req, res) => {
   try {
-    const { label, value } = req.body;
+    const { label, value, icon } = req.body;
     if (!label || !value) return res.status(400).json({ success: false, message: 'Missing label or value' });
     const exists = await Subject.findOne({ value });
     if (exists) return res.status(400).json({ success: false, message: 'Subject already exists' });
-    const subject = new Subject({ label, value });
+    const subject = new Subject({ label, value, icon });
     await subject.save();
     res.status(201).json({ success: true, data: subject });
   } catch (err) {

@@ -129,3 +129,19 @@ exports.verifyRefreshToken = async (req, res, next) => {
 };
 
 exports.authenticate = exports.protect;
+
+// authenticateOptional: nếu có token thì xác thực, không có thì next()
+exports.authenticateOptional = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+      req.user = await User.findById(decoded.id).select('-password');
+    } catch (err) {
+      // Nếu token sai thì bỏ qua user
+      req.user = null;
+    }
+  }
+  next();
+};

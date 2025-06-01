@@ -1,0 +1,26 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"success":true,"data":[{"_id":"683b2ea154a38f5564cef7ab","label":"Database","value"
+                    :"database","count":0,"__v":0},{"_id":"683b2ece54a38f5564cef7b4","label":"Marxist-Le
+                    ninist Political Economy","value...
+RawContent        : HTTP/1.1 200 OK
+                    Access-Control-Allow-Origin: http://localhost:3000
+                    Vary: Origin
+                    Access-Control-Allow-Credentials: true
+                    Connection: keep-alive
+                    Keep-Alive: timeout=5
+                    Content-Length: 770
+                    Content-T...
+Forms             : {}
+Headers           : {[Access-Control-Allow-Origin, http://localhost:3000], [Vary, Origin], 
+                    [Access-Control-Allow-Credentials, true], [Connection, keep-alive]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 770
+
+
+

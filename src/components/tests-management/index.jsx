@@ -76,6 +76,7 @@ const TestsManagement = () => {
   const [editingTest, setEditingTest] = useState(null);
   const [openForm, setOpenForm] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [totalAttemptsAll, setTotalAttemptsAll] = useState(0);
 
   // Load tests from API
   useEffect(() => {
@@ -86,6 +87,7 @@ const TestsManagement = () => {
         if (res.success) {
           console.log('Fetched tests:', res.data);
           setTestsList(res.data);
+          setTotalAttemptsAll(res.totalAttempts || 0);
         } else {
           throw new Error('Failed to fetch tests');
         }
@@ -303,7 +305,7 @@ const TestsManagement = () => {
               <span className="text-sm font-medium">Total Attempts</span>
             </div>
             <div className="text-2xl font-bold">
-              {testsList.reduce((total, test) => total + test.attempts, 0)}
+              {totalAttemptsAll}
             </div>
           </div>
         </div>
@@ -349,7 +351,7 @@ const TestsManagement = () => {
                     <td>
                       <div className="flex items-center gap-1">
                         <GroupIcon fontSize="small" />
-                        {String(test.attempts || 0)}
+                        {typeof test.totalAttempts === 'number' ? test.totalAttempts : 0}
                       </div>
                     </td>
                     <td>
@@ -361,7 +363,7 @@ const TestsManagement = () => {
                               : "text-red-600"
                           }`}
                         >
-                          {String(test.avgScore || 0)}%
+                          {typeof test.avgScore === 'number' ? test.avgScore : 0}
                         </span>
                       </div>
                     </td>
@@ -393,7 +395,7 @@ const TestsManagement = () => {
                       </div>
                     </td>
                     <td>
-                      <div className="text-sm text-muted">
+                      <div className="text-sm text-black">
                         {new Date(test.createdAt).toLocaleDateString()}
                       </div>
                     </td>

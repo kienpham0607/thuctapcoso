@@ -19,7 +19,7 @@ RadioGroup.displayName = "RadioGroup";
 
 const RadioGroupItem = React.forwardRef(({ className, value, children, ...props }, ref) => {
   const context = React.useContext(RadioGroupContext);
-  const checked = context?.value === value;
+  const checked = String(context?.value) === String(value);
 
   return (
     <button

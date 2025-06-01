@@ -1,0 +1,26 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"success":true,"data":[{"_id":"683b3715f2951ee1affc4083","title":"hihi","descriptio
+                    n":"âjajaja","subject":"database","timeLimit":30,"passingScore":70,"questions":[{"qu
+                    estionText":"kiên đẹp trai không...
+RawContent        : HTTP/1.1 200 OK
+                    Access-Control-Allow-Origin: http://localhost:3000
+                    Vary: Origin
+                    Access-Control-Allow-Credentials: true
+                    Connection: keep-alive
+                    Keep-Alive: timeout=5
+                    Content-Length: 577
+                    Content-T...
+Forms             : {}
+Headers           : {[Access-Control-Allow-Origin, http://localhost:3000], [Vary, Origin], 
+                    [Access-Control-Allow-Credentials, true], [Connection, keep-alive]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 577
+
+
+

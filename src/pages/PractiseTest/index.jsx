@@ -21,6 +21,15 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import { getAllPracticeTests } from '../../apis/practiceTestApi';
 import { getAllSubjects } from '../../apis/subjectApi';
 
+const iconComponentMap = {
+  BookIcon,
+  StorageIcon,
+  NetworkCheckIcon,
+  SecurityIcon,
+  HistoryEduIcon,
+  GavelIcon
+};
+
 export default function PractiseTests() {
   const navigate = useNavigate();
   const { subject } = useParams();
@@ -28,6 +37,9 @@ export default function PractiseTests() {
   const [loading, setLoading] = useState(true);
   const [subjects, setSubjects] = useState([]);
   const [loadingSubjects, setLoadingSubjects] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
+  const totalPages = Math.ceil(subjects.length / pageSize);
 
   useEffect(() => {
     const fetchTests = async () => {
@@ -44,35 +56,13 @@ export default function PractiseTests() {
       setLoadingSubjects(true);
       const res = await getAllSubjects();
       if (res.success && Array.isArray(res.data)) {
-        // Map icons/colors by subject code or name if needed
-        const iconMap = {
-          'database': StorageIcon,
-          'computer-networks': NetworkCheckIcon,
-          'web-security': SecurityIcon,
-          'party-history': HistoryEduIcon,
-          'general-law': GavelIcon,
-          'political-economy': BookIcon,
-        };
-        const colorMap = {
-          'database': '#2563eb',
-          'computer-networks': '#9333ea',
-          'web-security': '#e11d48',
-          'party-history': '#ea580c',
-          'general-law': '#4f46e5',
-          'political-economy': '#16977D',
-        };
-        const iconList = [BookIcon, NetworkCheckIcon, StorageIcon, SecurityIcon, HistoryEduIcon, GavelIcon];
-        setSubjects(res.data.map((subj, idx) => {
-          let icon = iconMap[subj.code];
-          if (!icon) {
-            // Pick a random icon for unknown codes
-            icon = iconList[Math.floor(Math.random() * iconList.length)];
-          }
+        setSubjects(res.data.map((subj) => {
+          const iconComponent = iconComponentMap[subj.icon] || BookIcon;
           return {
             ...subj,
-            icon,
-            color: colorMap[subj.code] || '#2563eb',
-            path: `/practice/${subj.code}`,
+            icon: iconComponent,
+            color: '#2563eb', // hoặc logic màu như cũ nếu muốn
+            path: `/practice/${subj.value}`,
           };
         }));
       } else {
@@ -82,6 +72,10 @@ export default function PractiseTests() {
     };
     fetchSubjects();
   }, []);
+
+  useEffect(() => {
+    setPage(1); // Reset về trang 1 khi subjects thay đổi
+  }, [subjects.length]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
@@ -137,7 +131,7 @@ export default function PractiseTests() {
             {loadingSubjects ? (
               <Typography>Loading subjects...</Typography>
             ) : (
-              subjects.map((subject, index) => (
+              subjects.slice((page-1)*pageSize, page*pageSize).map((subject, index) => (
                 <Grid item xs={12} sm={6} lg={4} key={index}>
                   <Zoom in={true} style={{ transitionDelay: `${index * 100}ms` }}>
                     <Card
@@ -198,7 +192,6 @@ export default function PractiseTests() {
                           variant="body2"
                           sx={{
                             color: '#64748b',
-                            lineHeight: 1.6
                           }}
                         >
                           {subject.description}
@@ -210,6 +203,84 @@ export default function PractiseTests() {
               ))
             )}
           </Grid>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, gap: 1 }}>
+              <Button
+                variant="outlined"
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                sx={{
+                  minWidth: 40,
+                  borderRadius: '50%',
+                  fontWeight: 700,
+                  color: '#16977D',
+                  borderColor: '#16977D',
+                  '&:hover': { background: '#e6f4f1', borderColor: '#16977D' }
+                }}
+              >
+                &#8592;
+              </Button>
+              {[...Array(totalPages)].map((_, i) => {
+                // Hiện trang đầu, cuối, trang hiện tại và lân cận
+                if (
+                  i === 0 ||
+                  i === totalPages - 1 ||
+                  Math.abs(i + 1 - page) <= 1
+                ) {
+                  return (
+                    <Button
+                      key={i}
+                      variant={page === i + 1 ? 'contained' : 'outlined'}
+                      onClick={() => setPage(i + 1)}
+                      sx={{
+                        minWidth: 40,
+                        borderRadius: '50%',
+                        fontWeight: 700,
+                        mx: 0.5,
+                        background: page === i + 1 ? '#16977D' : undefined,
+                        color: page === i + 1 ? '#fff' : '#16977D',
+                        borderColor: '#16977D',
+                        '&:hover': {
+                          background: page === i + 1 ? '#12725f' : '#e6f4f1',
+                          borderColor: '#16977D'
+                        }
+                      }}
+                    >
+                      {i + 1}
+                    </Button>
+                  );
+                }
+                // Hiện dấu ... nếu cần
+                if (
+                  (i === 1 && page > 3) ||
+                  (i === totalPages - 2 && page < totalPages - 2)
+                ) {
+                  return (
+                    <Box key={i} sx={{ minWidth: 32, textAlign: 'center', color: '#999', pt: 1 }}>
+                      ...
+                    </Box>
+                  );
+                }
+                return null;
+              })}
+              <Button
+                variant="outlined"
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                sx={{
+                  minWidth: 40,
+                  borderRadius: '50%',
+                  fontWeight: 700,
+                  color: '#16977D',
+                  borderColor: '#16977D',
+                  '&:hover': { background: '#e6f4f1', borderColor: '#16977D' }
+                }}
+              >
+                &#8594;
+              </Button>
+            </Box>
+          )}
         </Container>
       </Box>
 

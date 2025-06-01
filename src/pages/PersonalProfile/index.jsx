@@ -271,10 +271,10 @@ function PersonalProfile() {
         setLoading(true);
         const response = await getUserProfileApi();
         if (response.success) {
-          setProfileData(response.data);
+          setProfileData(response.user);
           setFormData({
-            fullName: response.data.fullName || '',
-            email: response.data.email || '',
+            fullName: response.user.fullName || '',
+            email: response.user.email || '',
           });
         } else {
           setSnackbarMessage('Lỗi khi tải hồ sơ: ' + (response.message || 'Không rõ lỗi'));

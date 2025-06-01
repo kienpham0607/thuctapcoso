@@ -72,7 +72,7 @@ export default function TestForm({ test, onSave, onCancel }) {
         // Extract and convert all question properties
         const questionText = String(q.questionText || q.question || '');
         const options = Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [];
-        const correctAnswer = String(q.correctAnswer || '');
+        const correctAnswer = typeof q.correctAnswer === 'number' ? q.correctAnswer : Number(q.correctAnswer);
         const explanation = String(q.explanation || '');
         const type = String(q.type || 'multiple-choice');
         const points = Number(q.points || 1);
@@ -149,7 +149,7 @@ export default function TestForm({ test, onSave, onCancel }) {
       const normalizedQuestion = {
         questionText: String(q.question || q.questionText || ''),
         options: Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
-        correctAnswer: String(q.correctAnswer || ''),
+        correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : Number(q.correctAnswer),
         explanation: String(q.explanation || ''),
         type: String(q.type || 'multiple-choice'),
         points: Number(q.points || 1),

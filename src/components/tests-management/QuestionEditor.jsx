@@ -109,17 +109,13 @@ export function QuestionEditor({ question, onUpdate, onDelete }) {
                 Add Option
               </Button>
             </div>
-            <div className="space-y-2">
+            <RadioGroup
+              value={String(safeQuestion.correctAnswer)}
+              onValueChange={(value) => onUpdate({ correctAnswer: Number(value) })}
+            >
               {safeQuestion.options.map((option, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <RadioGroup
-                    value={safeQuestion.correctAnswer}
-                    onValueChange={(value) => onUpdate({ correctAnswer: value })}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value={String(option)} id={`option-${index}`} />
-                    </div>
-                  </RadioGroup>
+                  <RadioGroupItem value={String(index + 1)} id={`option-${index + 1}`} />
                   <Input
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
@@ -131,7 +127,7 @@ export function QuestionEditor({ question, onUpdate, onDelete }) {
                   </Button>
                 </div>
               ))}
-            </div>
+            </RadioGroup>
           </div>
         )}
 
