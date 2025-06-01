@@ -13,12 +13,15 @@ import {
   Fade,
   Zoom,
   Container,
-  IconButton
+  IconButton,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import axios from 'axios';
 
 const theme = createTheme({
   palette: {
@@ -33,6 +36,29 @@ const theme = createTheme({
 
 export default function ContactPage() {
   const navigate = useNavigate();
+  const [form, setForm] = React.useState({ name: '', email: '', subject: '', message: '' });
+  const [loading, setLoading] = React.useState(false);
+  const [success, setSuccess] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      await axios.post('/api/contact', form);
+      setSuccess(true);
+      setForm({ name: '', email: '', subject: '', message: '' });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send message.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -227,7 +253,7 @@ export default function ContactPage() {
                     Fill out the form below and we'll get back to you soon
                   </Typography>
 
-                  <Box component="form" noValidate>
+                  <Box component="form" noValidate onSubmit={handleSubmit}>
                     <Grid container spacing={3}>
                       {['Name', 'Email', 'Subject'].map((label) => (
                         <Grid item xs={12} key={label}>
@@ -244,6 +270,9 @@ export default function ContactPage() {
                             fullWidth
                             placeholder={`Enter your ${label.toLowerCase()}`}
                             variant="outlined"
+                            name={label.toLowerCase()}
+                            value={form[label.toLowerCase()]}
+                            onChange={handleChange}
                             sx={{
                               '& .MuiOutlinedInput-root': {
                                 borderRadius: 2,
@@ -276,6 +305,9 @@ export default function ContactPage() {
                           multiline
                           rows={4}
                           variant="outlined"
+                          name="message"
+                          value={form.message}
+                          onChange={handleChange}
                           sx={{
                             '& .MuiOutlinedInput-root': {
                               borderRadius: 2,
@@ -297,6 +329,8 @@ export default function ContactPage() {
                           variant="contained"
                           color="primary"
                           size="large"
+                          type="submit"
+                          disabled={loading}
                           sx={{
                             py: 1.5,
                             borderRadius: 2,
@@ -310,11 +344,21 @@ export default function ContactPage() {
                             }
                           }}
                         >
-                          Send Message
+                          {loading ? 'Sending...' : 'Send Message'}
                         </Button>
                       </Grid>
                     </Grid>
                   </Box>
+                  <Snackbar open={success} autoHideDuration={4000} onClose={() => setSuccess(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+                    <Alert onClose={() => setSuccess(false)} severity="success" sx={{ width: '100%' }}>
+                      Message sent successfully!
+                    </Alert>
+                  </Snackbar>
+                  <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError('')} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+                    <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+                      {error}
+                    </Alert>
+                  </Snackbar>
                 </Paper>
               </Zoom>
             </Grid>

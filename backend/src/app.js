@@ -24,12 +24,14 @@ const authRoutes = require('./routes/authRoutes');
 const gpaRoutes = require('./routes/gpaRoutes');
 const practiceTestRoutes = require('./routes/practiceTestRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 
 // Sử dụng routes
 app.use('/api/auth', authRoutes);
 app.use('/api/gpa', gpaRoutes);
 app.use('/api/practice-tests', practiceTestRoutes);
 app.use('/api/subjects', subjectRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Route mẫu kiểm tra
 app.get('/', (req, res) => {

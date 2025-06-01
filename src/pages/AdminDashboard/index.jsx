@@ -4,6 +4,7 @@ import { OverviewTab } from '../../components/overview-tab';
 import { ProfileContent } from './ProfileContent'; // Updated import
 import UserManagement from '../../components/user-management/UserManagement';
 import SubjectManagement from '../../components/SubjectManagement';
+import ContactMessages from '../../components/contact-messages/ContactMessages';
 import {
   Box,
   Drawer,
@@ -22,6 +23,8 @@ import {
   Skeleton,
   Button,
   Tooltip,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -38,6 +41,8 @@ import {
 import { getUserProfileApi } from '../../apis/authApi';
 import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 
 const drawerWidth = 280;
 
@@ -53,6 +58,8 @@ const AdminDashboard = () => { // Renamed component
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
+  const [avatarMenuAnchor, setAvatarMenuAnchor] = useState(null);
 
   // Save active tab to localStorage whenever it changes
   useEffect(() => {
@@ -87,10 +94,12 @@ const AdminDashboard = () => { // Renamed component
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    handleProfileMenuClose();
-    // Add your logout logic here, e.g., navigate to login page
-    navigate('/login'); // Example: navigate to login after logout
+  const handleAvatarMenuOpen = (event) => setAvatarMenuAnchor(event.currentTarget);
+  const handleAvatarMenuClose = () => setAvatarMenuAnchor(null);
+
+  const handleSignOut = () => {
+    localStorage.clear();
+    navigate('/login');
   };
 
   const menuItems = [
@@ -98,7 +107,8 @@ const AdminDashboard = () => { // Renamed component
     { id: 'tests', text: 'Practice Tests', icon: <DescriptionIcon /> },
     { id: 'users', text: 'User Management', icon: <GroupIcon /> },
     { id: 'profile', text: 'Profile', icon: <AccountCircleIcon /> },
-    { id: 'settings', text: 'Subjects', icon: <SettingsIcon /> }
+    { id: 'settings', text: 'Subjects', icon: <SettingsIcon /> },
+    { id: 'contact', text: 'Contact Messages', icon: <NotificationsIcon /> }
   ];
 
   const drawer = (
@@ -217,16 +227,14 @@ const AdminDashboard = () => { // Renamed component
           <IconButton size="large" color="inherit">
             <NotificationsIcon />
           </IconButton>
-          <IconButton
-            size="large"
-            edge="end"
-            aria-label="account of current user"
-            aria-haspopup="true"
-            onClick={handleProfileMenuOpen}
-            color="inherit"
-          >
-            <Avatar sx={{ width: 32, height: 32 }} />
+          <IconButton size="large" edge="end" aria-label="account of current user" aria-haspopup="true" onClick={handleAvatarMenuOpen} color="inherit">
+            <Avatar sx={{ width: 32, height: 32 }} src={currentUser?.avatar || undefined}>
+              {!currentUser?.avatar && (currentUser?.fullName?.[0]?.toUpperCase() || currentUser?.email?.[0]?.toUpperCase() || '?')}
+            </Avatar>
           </IconButton>
+          <Menu anchorEl={avatarMenuAnchor} open={Boolean(avatarMenuAnchor)} onClose={handleAvatarMenuClose}>
+            <MenuItem onClick={handleSignOut}>Sign Out</MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
 
@@ -279,10 +287,10 @@ const AdminDashboard = () => { // Renamed component
         
         {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'tests' && <PracticeTestsContent />}
-        {/* Always display User Management for Admin */}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'profile' && <ProfileContent />}
         {activeTab === 'settings' && <SubjectManagement />}
+        {activeTab === 'contact' && <ContactMessages />}
       </Box>
     </Box>
   );
