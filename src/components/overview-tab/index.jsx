@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './overview-tab.css';
 import {
   Box,
@@ -13,43 +13,59 @@ import {
   Stars as StarsIcon,
   Group as GroupIcon,
 } from '@mui/icons-material';
-
-const statsCards = [
-  {
-    title: 'Practice Tests',
-    value: '15',
-    icon: <AssignmentTurnedInIcon />,
-    gradientStart: '#4158D0',
-    gradientEnd: '#C850C0',
-    subtitle: '+2 this month'
-  },
-  {
-    title: 'Average Score',
-    value: '78%',
-    icon: <StarsIcon />,
-    gradientStart: '#0093E9',
-    gradientEnd: '#80D0C7',
-    subtitle: '+5% from last month'
-  },
-  {
-    title: 'Students',
-    value: '125',
-    icon: <GroupIcon />,
-    gradientStart: '#00C9FF',
-    gradientEnd: '#92FE9D',
-    subtitle: '+12 new students'
-  },
-  {
-    title: 'Teachers',
-    value: '8',
-    icon: <AccountCircleIcon />,
-    gradientStart: '#FF0080',
-    gradientEnd: '#7928CA',
-    subtitle: 'Active staff'
-  },
-];
+import { getDashboardStats } from '../../apis/practiceTestApi';
 
 export const OverviewTab = () => {
+  const [stats, setStats] = useState({
+    totalTests: 0,
+    avgScore: 0,
+    totalStudents: 0,
+    totalTeachers: 0
+  });
+
+  useEffect(() => {
+    async function fetchStats() {
+      const res = await getDashboardStats();
+      if (res.success && res.data) setStats(res.data);
+    }
+    fetchStats();
+  }, []);
+
+  const statsCards = [
+    {
+      title: 'Practice Tests',
+      value: stats.totalTests,
+      icon: <AssignmentTurnedInIcon />,
+      gradientStart: '#4158D0',
+      gradientEnd: '#C850C0',
+      subtitle: ''
+    },
+    {
+      title: 'Average Score',
+      value: stats.avgScore,
+      icon: <StarsIcon />,
+      gradientStart: '#0093E9',
+      gradientEnd: '#80D0C7',
+      subtitle: ''
+    },
+    {
+      title: 'Students',
+      value: stats.totalStudents,
+      icon: <GroupIcon />,
+      gradientStart: '#00C9FF',
+      gradientEnd: '#92FE9D',
+      subtitle: ''
+    },
+    {
+      title: 'Teachers',
+      value: stats.totalTeachers,
+      icon: <AccountCircleIcon />,
+      gradientStart: '#FF0080',
+      gradientEnd: '#7928CA',
+      subtitle: ''
+    },
+  ];
+
   return (
     <Box>
       <Box sx={{ py: 2 }}>

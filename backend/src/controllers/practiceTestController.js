@@ -1,5 +1,6 @@
 const PracticeTest = require('../models/PracticeTest');
 const PracticeTestResult = require('../models/PracticeTestResult');
+const User = require('../models/User');
 const mongoose = require('mongoose');
 
 // Create a new practice test
@@ -160,6 +161,40 @@ exports.submitPracticeTestResult = async (req, res) => {
     }
     console.log('PracticeTestResult saved:', result); // Debug log
     res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// API thống kê tổng hợp cho dashboard
+exports.getDashboardStats = async (req, res) => {
+  try {
+    // Tổng số bài test
+    const totalTests = await PracticeTest.countDocuments();
+    // Tổng số attempts
+    const attemptsAgg = await PracticeTestResult.aggregate([
+      { $group: { _id: null, totalAttempts: { $sum: "$attempts" } } }
+    ]);
+    const totalAttempts = attemptsAgg[0]?.totalAttempts || 0;
+    // Avg score toàn hệ thống
+    const avgScoreAgg = await PracticeTestResult.aggregate([
+      { $group: { _id: null, avgScore: { $avg: "$score" } } }
+    ]);
+    const avgScore = avgScoreAgg[0]?.avgScore ? Math.round(avgScoreAgg[0].avgScore) : 0;
+    // Tổng số học sinh
+    const totalStudents = await User.countDocuments({ role: 'student' });
+    // Tổng số giáo viên
+    const totalTeachers = await User.countDocuments({ role: 'teacher' });
+    res.json({
+      success: true,
+      data: {
+        totalTests,
+        totalAttempts,
+        avgScore,
+        totalStudents,
+        totalTeachers
+      }
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

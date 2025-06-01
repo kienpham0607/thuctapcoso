@@ -1,10 +1,23 @@
 const Subject = require('../models/Subject');
+const PracticeTest = require('../models/PracticeTest');
 
-// Lấy tất cả subject
+// Lấy tất cả subject kèm count thực tế
 exports.getAllSubjects = async (req, res) => {
   try {
+    // Lấy tất cả subject
     const subjects = await Subject.find();
-    res.json({ success: true, data: subjects });
+    // Đếm số lượng bài test theo từng subject
+    const counts = await PracticeTest.aggregate([
+      { $group: { _id: "$subject", count: { $sum: 1 } } }
+    ]);
+    const countMap = {};
+    counts.forEach(c => { countMap[c._id] = c.count; });
+    // Gán count thực tế vào subject
+    const subjectsWithCount = subjects.map(s => ({
+      ...s.toObject(),
+      count: countMap[s.value] || 0
+    }));
+    res.json({ success: true, data: subjectsWithCount });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

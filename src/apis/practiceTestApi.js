@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/practice-tests';
 
 export async function getAllPracticeTests(params = {}) {
@@ -65,4 +67,14 @@ export async function submitPracticeTestResult(data) {
     body: JSON.stringify(data),
   });
   return res.json();
-} 
+}
+
+export const getDashboardStats = async () => {
+  try {
+    const response = await axios.get(`${API_BASE}/dashboard-stats`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    return { success: false, message: error.message };
+  }
+}; 

@@ -61,21 +61,6 @@ const GpaProgressCircle = ({ gpa = 0.0, maxGpa = 4.0 }) => {
           Cumulative GPA
         </Typography>
       </Box>
-      <Box sx={{
-        position: 'absolute',
-        bottom: 10,
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'space-between',
-        px: 2,
-      }}>
-        <Typography variant="caption" sx={{ color: '#A0AEC0', fontSize: '0.85rem' }}>
-          0.0
-        </Typography>
-        <Typography variant="caption" sx={{ color: '#A0AEC0', fontSize: '0.85rem' }}>
-          4.0
-        </Typography>
-      </Box>
     </Box>
   );
 };
