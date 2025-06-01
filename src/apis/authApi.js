@@ -8,13 +8,16 @@ const getAccessToken = () => {
 
 // Hàm trợ giúp cho các request API
 const apiRequest = async (url, method = 'GET', data = null) => {
-    const token = getAccessToken();
     const headers = {
         'Content-Type': 'application/json',
     };
 
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+    // Chỉ gửi token cho các API cần xác thực
+    if (!['/send-otp', '/verify-otp'].includes(url)) {
+        const token = getAccessToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
     }
 
     const config = {
@@ -65,5 +68,9 @@ export const updateUserProfileApi = (userData) => apiRequest('/profile', 'PUT', 
 
 // New API call to create a GPA entry
 export const createGpaEntryApi = (gpaEntryData) => apiRequest('/gpa', 'POST', gpaEntryData);
+
+// New API call to send OTP
+export const sendOtpApi = (email) => apiRequest('/send-otp', 'POST', { email });
+export const verifyOtpApi = (email, otp) => apiRequest('/verify-otp', 'POST', { email, otp });
 
 // Bạn có thể thêm các API khác liên quan đến auth ở đây 

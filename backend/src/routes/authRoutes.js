@@ -2,8 +2,11 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { protect, authorize, verifyRefreshToken } = require('../middlewares/authMiddleware');
+const multer = require('multer'); // Thêm nếu cần
 
 // Public routes
+router.post('/send-otp', authController.sendOtp);
+router.post('/verify-otp', authController.verifyOtp);
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
@@ -32,6 +35,6 @@ router.route('/users/:id')
     .delete(authorize('admin'), authController.deleteUserById); // Keep delete as admin only
 
 // Upload avatar route (if implemented)
-// router.post('/upload-avatar', upload.single('avatar'), authController.uploadAvatar);
+router.post('/upload-avatar', authController.uploadAvatar);
 
 module.exports = router;

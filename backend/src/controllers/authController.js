@@ -2,6 +2,11 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const controllerHandler = require('../utils/controllerHandler');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const OtpToken = require('../models/OtpToken');
+const nodemailer = require('nodemailer');
 
 // Register handler
 exports.register = controllerHandler(async (req, res) => {
@@ -374,4 +379,104 @@ exports.deleteUserById = controllerHandler(async (req, res) => {
         message: 'Xóa người dùng thành công',
         user: deletedUser // Optionally return deleted user info
     });
+});
+
+// Multer config for avatar upload
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, '../../uploads'));
+    },
+    filename: function (req, file, cb) {
+        const ext = path.extname(file.originalname);
+        cb(null, `avatar_${req.user.id}_${Date.now()}${ext}`);
+    }
+});
+
+const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (allowed.includes(file.mimetype)) cb(null, true);
+        else cb(new Error('Only JPG, JPEG, PNG allowed'));
+    }
+});
+
+exports.uploadAvatar = [
+    upload.single('avatar'),
+    controllerHandler(async (req, res) => {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            // Xóa file vừa upload nếu user không tồn tại
+            fs.unlinkSync(req.file.path);
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        // Xóa avatar cũ nếu có
+        if (user.avatar && user.avatar.startsWith('/uploads/')) {
+            const oldPath = path.join(__dirname, '../../', user.avatar);
+            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
+        user.avatar = `/uploads/${req.file.filename}`;
+        await user.save();
+        res.status(200).json({ success: true, avatar: user.avatar });
+    })
+];
+
+// Gửi OTP
+exports.sendOtp = controllerHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+  // Nếu email đã đăng ký thì không gửi OTP nữa
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ success: false, message: 'Email đã được đăng ký, vui lòng dùng email khác.' });
+  }
+
+  // Sinh OTP 6 số
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+
+  // Lưu vào DB (ghi đè nếu đã có)
+  await OtpToken.findOneAndUpdate(
+    { email },
+    { otp, expiresAt },
+    { upsert: true, new: true }
+  );
+
+  // Gửi email
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.CONTACT_EMAIL_USER,
+      pass: process.env.CONTACT_EMAIL_PASS
+    }
+  });
+
+  await transporter.sendMail({
+    from: process.env.CONTACT_EMAIL_USER,
+    to: email,
+    subject: 'Mã OTP xác thực đăng ký',
+    text: `Mã OTP của bạn là: ${otp} (có hiệu lực 5 phút)`
+  });
+
+  res.json({ success: true, message: 'OTP sent' });
+});
+
+// Xác thực OTP
+exports.verifyOtp = controllerHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+
+  const record = await OtpToken.findOne({ email, otp });
+  if (!record) return res.status(400).json({ success: false, message: 'OTP không đúng' });
+  if (record.expiresAt < new Date()) return res.status(400).json({ success: false, message: 'OTP đã hết hạn' });
+
+  // Xóa OTP sau khi xác thực thành công
+  await OtpToken.deleteOne({ email, otp });
+
+  res.json({ success: true, message: 'OTP verified' });
 });

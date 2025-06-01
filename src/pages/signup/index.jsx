@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
+import { sendOtpApi, verifyOtpApi, registerUserApi } from '../../apis/authApi';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -73,15 +74,18 @@ export default function SignUpPage() {
       setError("Email không được để trống");
       return;
     }
-
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await sendOtpApi(formData.email);
       setOtpSent(true);
       setCountdown(300);
       setError("✓ Mã OTP đã được gửi đến email của bạn");
     } catch (err) {
-      setError("⚠️ Có lỗi xảy ra khi gửi mã OTP");
+      if (err.message) {
+        setError("⚠️ " + err.message);
+      } else {
+        setError("⚠️ Có lỗi xảy ra khi gửi mã OTP");
+      }
     } finally {
       setLoading(false);
     }
@@ -92,14 +96,13 @@ export default function SignUpPage() {
       setError("Vui lòng nhập mã OTP");
       return;
     }
-
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await verifyOtpApi(formData.email, formData.otp);
       setOtpVerified(true);
       setError("✓ Xác thực OTP thành công!");
     } catch (err) {
-      setError("⚠️ Mã OTP không chính xác");
+      setError("⚠️ Mã OTP không chính xác hoặc đã hết hạn");
     } finally {
       setLoading(false);
     }
@@ -107,48 +110,49 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!formData.fullName.trim()) {
       setError("❌ Vui lòng nhập họ và tên");
       return;
     }
-
     if (!formData.accountType) {
       setError("❌ Vui lòng chọn loại tài khoản");
       return;
     }
-
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!passwordRegex.test(formData.password)) {
-      setError("❌ Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số!");
-      return;
-    }
-
     if (formData.password !== formData.confirmPassword) {
       setError("❌ Mật khẩu xác nhận không khớp!");
       return;
     }
-
     if (!formData.agreeTerms) {
       setError("❌ Vui lòng đồng ý với điều khoản dịch vụ");
       return;
     }
-
     if (!otpVerified) {
       setError("❌ Vui lòng xác thực mã OTP trước khi đăng ký");
       return;
     }
-
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await registerUserApi({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.accountType
+      });
       setError("✓ Đăng ký thành công! Đang chuyển hướng...");
-      
       setTimeout(() => {
         navigate("/login");
       }, 2000);
     } catch (err) {
-      setError("⚠️ Có lỗi xảy ra khi đăng ký");
+      const msg = err.message || "";
+      if (
+        msg.includes('Email đã được sử dụng') ||
+        msg.includes('Email đã được đăng ký') ||
+        (msg.toLowerCase().includes('email') && (msg.toLowerCase().includes('đăng ký') || msg.toLowerCase().includes('sử dụng')))
+      ) {
+        setError("❌ Email này đã được đăng ký. Vui lòng dùng email khác hoặc đăng nhập.");
+      } else {
+        setError("⚠️ Có lỗi xảy ra khi đăng ký: " + msg);
+      }
     } finally {
       setLoading(false);
     }
