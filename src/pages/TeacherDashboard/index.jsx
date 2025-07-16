@@ -100,7 +100,6 @@ const TeacherDashboard = () => {
   const menuItems = [
     { id: 'overview', text: 'Overview', icon: <BarChartIcon /> },
     { id: 'tests', text: 'Practice Tests', icon: <DescriptionIcon /> },
-    { id: 'users', text: 'User Management', icon: <GroupIcon /> },
     { id: 'profile', text: 'Profile', icon: <AccountCircleIcon /> },
     { id: 'settings', text: 'Subjects', icon: <SettingsIcon /> }
   ];
@@ -227,7 +226,7 @@ const TeacherDashboard = () => {
             onClick={handleProfileMenuOpen}
             color="inherit"
           >
-            <Avatar sx={{ width: 32, height: 32 }} />
+            <Avatar sx={{ width: 32, height: 32 }} src={profileData?.user?.avatar || ''} alt={profileData?.user?.fullName || profileData?.user?.email || ''} />
           </IconButton>
         </Toolbar>
       </AppBar>

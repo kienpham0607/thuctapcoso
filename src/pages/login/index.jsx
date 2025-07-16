@@ -133,7 +133,7 @@ export default function LoginPage() {
             Đăng nhập
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Hoặc <RouterLink to="/signup" style={{ color: '#16977D', textDecoration: 'none' }}>đăng ký tài khoản mới</RouterLink>
+            Hoặc <RouterLink to="/auth/signup" style={{ color: '#16977D', textDecoration: 'none' }}>đăng ký tài khoản mới</RouterLink>
           </Typography>
         </Box>
 
@@ -225,7 +225,7 @@ export default function LoginPage() {
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">
               Chưa có tài khoản?{' '}
-              <RouterLink to="/signup" style={{ color: '#16977D', textDecoration: 'none' }}>
+              <RouterLink to="/auth/signup" style={{ color: '#16977D', textDecoration: 'none' }}>
                 Đăng ký ngay
               </RouterLink>
             </Typography>

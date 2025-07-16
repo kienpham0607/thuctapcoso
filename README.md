@@ -1,70 +1,155 @@
-# Getting Started with Create React App
+# Grade Calculator - GPA Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive web application for managing academic grades, calculating GPA, and tracking learning progress.
+
+## Features
+
+- **GPA Calculator**: Automatic GPA calculation with visual progress tracking
+- **Practice Tests**: Interactive practice tests with analytics
+- **Personal Profile**: User profile management and academic history
+- **Lecture Management**: Organize and access lecture materials
+- **Progress Tracking**: Detailed analytics and visualizations
+- **User Authentication**: Secure login/signup with role-based access
+
+## Tech Stack
+
+- **Frontend**: React.js, Material-UI, Tailwind CSS
+- **Backend**: Node.js, Express.js, MongoDB
+- **State Management**: Redux Toolkit
+- **Authentication**: JWT, bcrypt
+- **Charts**: Chart.js, Recharts
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+- MongoDB (for backend)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-username/grade-calculator.git
+   cd grade-calculator
+   ```
+
+2. **Install frontend dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Install backend dependencies**
+   ```bash
+   cd backend
+   npm install
+   ```
+
+4. **Set up environment variables**
+   Create `.env` file in the backend directory:
+   ```env
+   MONGODB_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_secret
+   PORT=5000
+   ```
+
+5. **Start the development servers**
+   
+   **Backend:**
+   ```bash
+   cd backend
+   npm run dev
+   ```
+   
+   **Frontend:**
+   ```bash
+   npm start
+   ```
+
+   The application will be available at `http://localhost:3000`
+
+## Deployment to GitHub Pages
+
+### Prerequisites
+
+1. **Update homepage URL**
+   Edit `package.json` and replace `your-username` with your actual GitHub username:
+   ```json
+   {
+     "homepage": "https://your-username.github.io/grade-calculator"
+   }
+   ```
+
+2. **Ensure gh-pages is installed**
+   ```bash
+   npm install --save-dev gh-pages
+   ```
+
+### Deployment Steps
+
+1. **Build the application**
+   ```bash
+   npm run build
+   ```
+
+2. **Deploy to GitHub Pages**
+   ```bash
+   npm run deploy
+   ```
+
+3. **Configure GitHub Pages**
+   - Go to your repository on GitHub
+   - Navigate to Settings > Pages
+   - Set Source to "Deploy from a branch"
+   - Select "gh-pages" branch
+   - Save the settings
+
+4. **Access your deployed application**
+   Your application will be available at: `https://your-username.github.io/grade-calculator`
+
+### Important Notes for GitHub Pages Deployment
+
+- The application uses HashRouter for client-side routing compatibility with GitHub Pages
+- Static assets are served from the `build` folder
+- The backend API calls will need to be updated to point to your deployed backend server
+- Update the `proxy` field in `package.json` to point to your production backend URL
 
 ## Available Scripts
 
-In the project directory, you can run:
+- `npm start` - Runs the app in development mode
+- `npm run build` - Builds the app for production
+- `npm test` - Launches the test runner
+- `npm run deploy` - Deploys to GitHub Pages
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+grade-calculator/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── pages/         # Page components
+│   ├── apis/          # API service functions
+│   ├── features/      # Redux slices and services
+│   ├── contexts/      # React contexts
+│   └── utils/         # Utility functions
+├── backend/           # Node.js backend server
+├── public/           # Static assets
+└── package.json      # Dependencies and scripts
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Contributing
 
-### `npm test`
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## License
 
-### `npm run build`
+This project is licensed under the MIT License.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Support
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+For support, email support@gradecalculator.com or create an issue in the repository.

@@ -9,9 +9,11 @@ import IconButton from '@mui/material/IconButton';
 import Box from '@mui/material/Box';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import logo from '../../assets/logo.svg';
+import logoGradeCalculator from '../../assets/logo.png';
 import { selectCurrentUser } from '../../features/auth/authSlice';
 import { logout } from '../../features/auth/authSlice';
 import UserMenu from '../UserMenu';
+import Avatar from '@mui/material/Avatar';
 
 export default function Header() {
   const navigate = useNavigate();
@@ -24,70 +26,83 @@ export default function Header() {
   };
 
   const handleLogin = () => {
-    console.log('🔑 Header: Is authenticated before navigating to login:', user ? true : false);
-    console.log('🔄 Header: Attempting to navigate to login page...');
-    navigate('/login');
-    console.log('✅ Header: Navigation completed');
+    navigate('/auth/login');
   };
+
+  // Xác định tab đang active
+  const path = window.location.pathname.toLowerCase();
+  const menuItems = [
+    { label: 'College GPA', path: '/college-gpa' },
+    { label: 'Practice Test', path: '/practice-test' },
+    { label: 'Personal Profile', path: '/personal-profile' },
+    { label: 'About', path: '/about' },
+    { label: 'Contact', path: '/contact' },
+  ];
 
   return (
     <AppBar
       position="static"
       color="transparent"
       elevation={0}
-      sx={{
-        borderBottom: '1px solid #ccc',
-        px: 2
-      }}
+      sx={{ borderBottom: '1px solid #eee', px: 2, bgcolor: '#fff' }}
     >
-      <Toolbar disableGutters sx={{ minHeight: 64 }}>
-        {/* Logo + Tên app */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+      <Toolbar disableGutters sx={{ minHeight: 64, position: 'relative' }}>
+        {/* Logo to hơn */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mr: 2, flexShrink: 0 }}>
           <img
-            src={logo}
-            alt="logo"
-            style={{ width: 200, height: 45, marginRight: 8, cursor: 'pointer', objectFit: 'contain' }}
+            src={logoGradeCalculator}
+            alt="Grade Calculator Logo"
+            style={{ height: 56, maxWidth: 220, marginRight: 20, cursor: 'pointer', objectFit: 'contain', display: 'block' }}
             onClick={() => navigate("/")}
           />
         </Box>
 
-        {/* Menu chính giữa */}
-        <Box sx={{ display: 'flex', gap: 3, flexGrow: 1, justifyContent: 'center' }}>
-          <Button
-            color="inherit"
-            sx={{ textTransform: 'capitalize' }}
-            onClick={() => navigate("/College-GPA")}
-          >
-            College GPA
-          </Button>
-          <Button
-            color="inherit"
-            sx={{ textTransform: 'capitalize' }}
-            onClick={() => navigate("/practice-test")}
-          >
-            Practice Test
-          </Button>
-          <Button
-            color="inherit"
-            sx={{ textTransform: 'capitalize' }}
-            onClick={() => navigate("/Personal-profile")}
-          >
-            Personal profile
-          </Button>
-          <Button 
-            color="inherit" 
-            sx={{ textTransform: 'capitalize' }}
-            onClick={() => navigate("/about")}
-          >
-            About
-          </Button>
-          <Button 
-            color="inherit" 
-            sx={{ textTransform: 'capitalize' }} 
-            onClick={() => navigate("/contact")}
-          >
-            Contact
-          </Button>
+        {/* Menu căn giữa tuyệt đối */}
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            top: 0,
+            height: '100%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: 3,
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+          }}
+        >
+          {menuItems.map((item) => {
+            const isActive = path === item.path;
+            return (
+              <Typography
+                key={item.path}
+                variant="subtitle1"
+                onClick={() => navigate(item.path)}
+                sx={{
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: 17,
+                  color: isActive ? '#06c39f' : '#374151',
+                  cursor: 'pointer',
+                  px: 0.5,
+                  pb: 0.5,
+                  borderBottom: isActive ? '3px solid #06c39f' : '3px solid transparent',
+                  transition: 'color 0.2s, border-bottom 0.2s',
+                  '&:hover': {
+                    color: '#06c39f',
+                    borderBottom: '3px solid #06c39f',
+                    background: 'none',
+                  },
+                  borderRadius: 0,
+                  background: 'none',
+                  userSelect: 'none',
+                  lineHeight: 1.1,
+                }}
+              >
+                {item.label}
+              </Typography>
+            );
+          })}
         </Box>
 
         {/* Đẩy các item còn lại sang bên phải */}

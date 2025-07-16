@@ -33,10 +33,7 @@ function HomePage() {
   };
 
   const handleLogin = () => {
-    console.log('🔑 HomePage: Is authenticated before navigating to login:', user ? true : false);
-    console.log('🔄 HomePage: Attempting to navigate to login page...');
-    navigate('/login');
-    console.log('✅ HomePage: Navigation completed');
+    navigate('/auth/login');
   };
 
   return (

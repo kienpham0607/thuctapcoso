@@ -480,3 +480,80 @@ exports.verifyOtp = controllerHandler(async (req, res) => {
 
   res.json({ success: true, message: 'OTP verified' });
 });
+
+// Quên mật khẩu
+exports.forgotPassword = controllerHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+  // Kiểm tra email có tồn tại không
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'Email không tồn tại trong hệ thống' });
+  }
+
+  // Sinh OTP 6 số
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+
+  // Lưu vào DB (ghi đè nếu đã có)
+  await OtpToken.findOneAndUpdate(
+    { email },
+    { otp, expiresAt },
+    { upsert: true, new: true }
+  );
+
+  // Gửi email
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.CONTACT_EMAIL_USER,
+      pass: process.env.CONTACT_EMAIL_PASS
+    }
+  });
+
+  await transporter.sendMail({
+    from: process.env.CONTACT_EMAIL_USER,
+    to: email,
+    subject: 'Mã OTP đặt lại mật khẩu',
+    text: `Mã OTP của bạn là: ${otp} (có hiệu lực 5 phút)`
+  });
+
+  res.json({ success: true, message: 'OTP đã được gửi đến email của bạn' });
+});
+
+// Reset mật khẩu
+exports.resetPassword = controllerHandler(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Email, OTP và mật khẩu mới là bắt buộc' 
+    });
+  }
+
+  // Kiểm tra OTP
+  const record = await OtpToken.findOne({ email, otp });
+  if (!record) {
+    return res.status(400).json({ success: false, message: 'OTP không đúng' });
+  }
+  if (record.expiresAt < new Date()) {
+    return res.status(400).json({ success: false, message: 'OTP đã hết hạn' });
+  }
+
+  // Tìm user
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+  }
+
+  // Hash mật khẩu mới
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
+  await user.save();
+
+  // Xóa OTP sau khi đặt lại mật khẩu thành công
+  await OtpToken.deleteOne({ email, otp });
+
+  res.json({ success: true, message: 'Đặt lại mật khẩu thành công' });
+});

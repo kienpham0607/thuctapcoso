@@ -140,7 +140,7 @@ export default function SignUpPage() {
       });
       setError("✓ Đăng ký thành công! Đang chuyển hướng...");
       setTimeout(() => {
-        navigate("/login");
+        navigate("/auth/login");
       }, 2000);
     } catch (err) {
       const msg = err.message || "";

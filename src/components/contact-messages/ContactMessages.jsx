@@ -26,8 +26,9 @@ const ContactMessages = () => {
     const fetchMessages = async () => {
       try {
         const token = localStorage.getItem('accessToken');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await axios.get('/api/contact', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
           withCredentials: true
         });
         setMessages(res.data.data);

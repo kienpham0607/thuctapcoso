@@ -15,18 +15,21 @@ export async function getAllPracticeTests(params = {}) {
 }
 
 export async function getPracticeTestById(id) {
-  const res = await fetch(`${API_BASE}/${id}`);
+  const token = localStorage.getItem('accessToken');
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const res = await fetch(`${API_BASE}/${id}`, { headers });
   return res.json();
 }
 
 export async function createPracticeTest(data) {
   const token = localStorage.getItem('accessToken');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
   const res = await fetch(`${API_BASE}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
     body: JSON.stringify(data),
   });
   return res.json();
@@ -34,12 +37,13 @@ export async function createPracticeTest(data) {
 
 export async function updatePracticeTest(id, data) {
   const token = localStorage.getItem('accessToken');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
   const res = await fetch(`${API_BASE}/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
     body: JSON.stringify(data),
   });
   return res.json();
@@ -47,23 +51,23 @@ export async function updatePracticeTest(id, data) {
 
 export async function deletePracticeTest(id) {
   const token = localStorage.getItem('accessToken');
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
   const res = await fetch(`${API_BASE}/${id}`, {
     method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
   });
   return res.json();
 }
 
 export async function submitPracticeTestResult(data) {
   const token = localStorage.getItem('accessToken');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
   const res = await fetch(`${API_BASE}/submit-result`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
     body: JSON.stringify(data),
   });
   return res.json();
@@ -71,7 +75,9 @@ export async function submitPracticeTestResult(data) {
 
 export const getDashboardStats = async () => {
   try {
-    const response = await axios.get(`${API_BASE}/dashboard-stats`);
+    const token = localStorage.getItem('accessToken');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await axios.get(`${API_BASE}/dashboard-stats`, { headers });
     return response.data;
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);

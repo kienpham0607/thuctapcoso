@@ -21,6 +21,7 @@ import {
   Chip,
   Tabs,
   Tab,
+  Collapse,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -40,6 +41,8 @@ import {
   Timer as TimerIcon,
   EmojiEvents as AwardIcon,
   Psychology as BrainIcon,
+  ExpandMore as ExpandMoreIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { getPracticeTestAnalytics } from '../../apis/practiceTestApi';
 
@@ -49,20 +52,21 @@ export function TestAnalytics({ testId, onBack }) {
   const [error, setError] = useState("");
   const [analytics, setAnalytics] = useState(null);
 
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await getPracticeTestAnalytics(testId);
+      if (res.success) setAnalytics(res.data);
+      else setError(res.message || "Lỗi khi lấy dữ liệu analytics");
+    } catch (err) {
+      setError(err.message || "Lỗi khi lấy dữ liệu analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const res = await getPracticeTestAnalytics(testId);
-        if (res.success) setAnalytics(res.data);
-        else setError(res.message || "Lỗi khi lấy dữ liệu analytics");
-      } catch (err) {
-        setError(err.message || "Lỗi khi lấy dữ liệu analytics");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAnalytics();
   }, [testId]);
 
@@ -83,7 +87,7 @@ export function TestAnalytics({ testId, onBack }) {
           },
           {
             title: "Average Score",
-            value: `${test.avgScore}%`,
+            value: test.avgScore,
             subtitle: <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><TrendingUpIcon sx={{ fontSize: '1rem' }} />Trung bình điểm</Box>,
             icon: <TargetIcon />,
           },
@@ -159,7 +163,7 @@ export function TestAnalytics({ testId, onBack }) {
     );
   }
 
-  function QuestionAnalyticsTab() {
+  function QuestionAnalyticsTab({ hideSortBy }) {
     const [sortBy, setSortBy] = useState("difficulty");
     const sortedQuestions = [...questionAnalytics].sort((a, b) => {
       switch (sortBy) {
@@ -186,22 +190,24 @@ export function TestAnalytics({ testId, onBack }) {
       <div className="space-y-4">
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h6">Question Performance Analysis</Typography>
-          <FormControl sx={{ width: 200 }} size="small">
-            <InputLabel>Sort by</InputLabel>
-            <Select value={sortBy} label="Sort by" onChange={(e) => setSortBy(e.target.value)}>
-              <MenuItem value="difficulty">Sort by Difficulty</MenuItem>
-              <MenuItem value="correctRate">Sort by Correct Rate</MenuItem>
-              <MenuItem value="timeSpent">Sort by Time Spent</MenuItem>
-            </Select>
-          </FormControl>
+          {!hideSortBy && (
+            <FormControl sx={{ width: 200 }} size="small">
+              <InputLabel>Sort by</InputLabel>
+              <Select value={sortBy} label="Sort by" onChange={(e) => setSortBy(e.target.value)}>
+                <MenuItem value="difficulty">Sort by Difficulty</MenuItem>
+                <MenuItem value="correctRate">Sort by Correct Rate</MenuItem>
+                <MenuItem value="timeSpent">Sort by Time Spent</MenuItem>
+              </Select>
+            </FormControl>
+          )}
         </Box>
-        {sortedQuestions.map((question) => (
+        {sortedQuestions.map((question, idx) => (
           <Card key={question.id} sx={{ mb: 2 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography variant="subtitle1">Question</Typography>
+                    <Typography variant="subtitle1">Question {idx + 1}</Typography>
                     <Chip label={question.type} variant="outlined" size="small" />
                   </Box>
                   <Typography variant="body2" color="text.secondary">
@@ -209,49 +215,20 @@ export function TestAnalytics({ testId, onBack }) {
                   </Typography>
                 </Box>
               </Box>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Correct Rate
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LinearProgress variant="determinate" value={question.correctRate} sx={{ flexGrow: 1 }} />
-                    <Typography variant="body2">{question.correctRate}%</Typography>
-                  </Box>
+              <Grid container spacing={2} alignItems="center" justifyContent="center">
+                <Grid item xs={12} md={4}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>Correct Rate</Typography>
+                  <Typography variant="h6" color="primary.main">{question.correctRate}%</Typography>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Average Time
-                  </Typography>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>Correct Answer</Typography>
+                  <Typography variant="h6" color="success.main">{question.correctAnswer}</Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>Average Time</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TimerIcon fontSize="small" />
                     <Typography>{question.avgTimeSpent}s</Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Correct Rate</Typography>
-                      <Typography variant="h6" color="primary.main">{question.correctRate}%</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Correct Answer</Typography>
-                      <Typography variant="h6" color="success.main">{question.correctAnswer}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Answer Stats</Typography>
-                      <Box>
-                        {question.answerStats && Object.keys(question.answerStats).length > 0 ? (
-                          Object.entries(question.answerStats).map(([ans, cnt]) => (
-                            <Typography key={ans} variant="body2">
-                              <b>{ans}</b>: {cnt} lần
-                            </Typography>
-                          ))
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">No answers</Typography>
-                        )}
-                      </Box>
-                    </Box>
                   </Box>
                 </Grid>
               </Grid>
@@ -265,6 +242,7 @@ export function TestAnalytics({ testId, onBack }) {
   function StudentResultsTab() {
     const [filterStatus, setFilterStatus] = useState("all");
     const [sortBy, setSortBy] = useState("score");
+    const [expanded, setExpanded] = useState(null);
     const filteredResults = studentResults.filter((student) => {
       if (filterStatus === "all") return true;
       return student.status === filterStatus;
@@ -278,6 +256,14 @@ export function TestAnalytics({ testId, onBack }) {
         default: return 0;
       }
     });
+    const formatDate = (dateString) => {
+      return new Date(dateString).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    };
     return (
       <div className="space-y-4">
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -306,6 +292,7 @@ export function TestAnalytics({ testId, onBack }) {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell />
                 <TableCell>Student</TableCell>
                 <TableCell>Score</TableCell>
                 <TableCell>Time Spent</TableCell>
@@ -317,45 +304,91 @@ export function TestAnalytics({ testId, onBack }) {
             </TableHead>
             <TableBody>
               {sortedResults.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar src={student.avatar}>{student.name[0]}</Avatar>
-                      <Box>
-                        <Typography variant="subtitle2">{student.name}</Typography>
-                        <Typography variant="body2" color="text.secondary">{student.email}</Typography>
+                <React.Fragment key={student.id}>
+                  <TableRow>
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={() => setExpanded(expanded === student.id ? null : student.id)}
+                        aria-label="expand row"
+                      >
+                        <ExpandMoreIcon style={{ transform: expanded === student.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }} />
+                      </IconButton>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar src={student.avatar}>{student.name[0]}</Avatar>
+                        <Box>
+                          <Typography variant="subtitle2">{student.name}</Typography>
+                          <Typography variant="body2" color="text.secondary">{student.email}</Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography>{student.score}%</Typography>
-                      <LinearProgress variant="determinate" value={student.percentage} sx={{ width: 60 }} color={student.score >= test.passingScore ? "success" : "error"} />
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <ClockIcon fontSize="small" />
-                      <Typography>{student.timeSpent}m</Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography>
-                      <span style={{ color: '#2e7d32' }}>{student.correctAnswers}</span>
-                      {' / '}
-                      <span style={{ color: '#d32f2f' }}>{student.incorrectAnswers}</span>
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={student.status} color={student.status === "passed" ? "success" : "error"} size="small" />
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={student.attempts} variant="outlined" size="small" />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">{new Date(student.completedAt).toLocaleString()}</Typography>
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography>{student.score}%</Typography>
+                        <LinearProgress variant="determinate" value={student.percentage} sx={{ width: 60 }} color={student.score >= test.passingScore ? "success" : "error"} />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ClockIcon fontSize="small" />
+                        <Typography>{student.timeSpent}m</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography>
+                        <span style={{ color: '#2e7d32' }}>{student.correctAnswers}</span>
+                        {' / '}
+                        <span style={{ color: '#d32f2f' }}>{student.incorrectAnswers}</span>
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={student.status} color={student.status === "passed" ? "success" : "error"} size="small" />
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={student.attempts} variant="outlined" size="small" />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">{new Date(student.completedAt).toLocaleString()}</Typography>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
+                      <Collapse in={expanded === student.id} timeout="auto" unmountOnExit>
+                        <Box sx={{ margin: 2 }}>
+                          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                            Lịch sử các lần làm bài:
+                          </Typography>
+                          {student.history && student.history.length > 0 ? (
+                            <Table size="small" sx={{ mb: 2 }}>
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Lần</TableCell>
+                                  <TableCell>Score</TableCell>
+                                  <TableCell>Time Spent</TableCell>
+                                  <TableCell>Submitted At</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {student.history.map((h, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell>{idx + 1}</TableCell>
+                                    <TableCell>{h.score}%</TableCell>
+                                    <TableCell>{h.timeSpent}m</TableCell>
+                                    <TableCell>{formatDate(h.submittedAt)}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <Typography color="text.secondary">Chưa có lịch sử làm bài.</Typography>
+                          )}
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
@@ -377,17 +410,17 @@ export function TestAnalytics({ testId, onBack }) {
             <Typography color="text.secondary">{test.description}</Typography>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" startIcon={<DownloadIcon />}>Export Report</Button>
-          <Button variant="outlined" startIcon={<FileTextIcon />}>View Test</Button>
-        </Box>
+        {/* Nút refresh */}
+        <IconButton onClick={fetchAnalytics} size="large" title="Refresh analytics">
+          <RefreshIcon />
+        </IconButton>
       </Box>
       {/* Test Info */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Grid container spacing={3}>
             {[
-              { icon: <CalendarIcon />, label: "Created", value: test.createdAt },
+              { icon: <CalendarIcon />, label: "Created", value: new Date(test.createdAt).toLocaleDateString() },
               { icon: <FileTextIcon />, label: "Questions", value: test.totalQuestions },
               { icon: <ClockIcon />, label: "Time Limit", value: `${test.timeLimit}m` },
               { icon: <TargetIcon />, label: "Passing Score", value: `${test.passingScore}%` },
@@ -417,7 +450,7 @@ export function TestAnalytics({ testId, onBack }) {
         <Tab value="students" label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><UsersIcon sx={{ fontSize: '1.2rem' }} />Student Results</Box>} />
       </Tabs>
       <Box sx={{ mt: 3 }}>
-        {activeTab === "questions" && <QuestionAnalyticsTab />}
+        {activeTab === "questions" && <QuestionAnalyticsTab hideSortBy />}
         {activeTab === "students" && <StudentResultsTab />}
       </Box>
     </Box>

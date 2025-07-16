@@ -18,7 +18,7 @@ export function QuestionEditor({ question, onUpdate, onDelete }) {
     options: Array.isArray(question.options)
       ? question.options.map(opt => typeof opt === 'object' ? JSON.stringify(opt) : String(opt))
       : [],
-    correctAnswer: String(question.correctAnswer || ""),
+    correctAnswer: typeof question.correctAnswer === 'number' ? question.correctAnswer : 0,
     points: Number(question.points || 1),
     order: Number(question.order || 1),
     explanation: String(question.explanation || ""),
@@ -64,9 +64,12 @@ export function QuestionEditor({ question, onUpdate, onDelete }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Question Type</Label>
-            <Select value={safeQuestion.type} onValueChange={(value) => onUpdate({ type: value })}>
+            <Select
+              value={safeQuestion.type}
+              onValueChange={(value) => onUpdate({ type: value })}
+            >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select question type" />
               </SelectTrigger>
               <SelectContent>
                 {questionTypes.map((type) => (
@@ -115,7 +118,7 @@ export function QuestionEditor({ question, onUpdate, onDelete }) {
             >
               {safeQuestion.options.map((option, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <RadioGroupItem value={String(index + 1)} id={`option-${index + 1}`} />
+                  <RadioGroupItem value={String(index)} id={`option-${index}`} />
                   <Input
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}

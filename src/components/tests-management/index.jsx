@@ -24,6 +24,8 @@ import {
   MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import { getAllPracticeTests, createPracticeTest, updatePracticeTest, deletePracticeTest, getPracticeTestById } from '../../apis/practiceTestApi';
+import { useNavigate } from 'react-router-dom';
+import { getAllSubjects } from '../../apis/subjectApi';
 
 // Mock data
 const practiceTests = [
@@ -77,6 +79,9 @@ const TestsManagement = () => {
   const [openForm, setOpenForm] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [totalAttemptsAll, setTotalAttemptsAll] = useState(0);
+  const navigate = useNavigate();
+  const [subjects, setSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
 
   // Load tests from API
   useEffect(() => {
@@ -104,6 +109,25 @@ const TestsManagement = () => {
     };
     fetchTests();
   }, []);
+
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      setLoadingSubjects(true);
+      const res = await getAllSubjects();
+      if (res.success && Array.isArray(res.data)) {
+        setSubjects(res.data);
+      } else {
+        setSubjects([]);
+      }
+      setLoadingSubjects(false);
+    };
+    fetchSubjects();
+  }, []);
+
+  // Reset menu actions khi quay lại trang list
+  useEffect(() => {
+    if (view === 'list') setAnchorMoreMenu(null);
+  }, [view]);
 
   const handleCreateTest = () => {
     setSelectedTest(null);
@@ -135,8 +159,10 @@ const TestsManagement = () => {
 
   const handleViewTest = (testId) => {
     const test = testsList.find(t => t._id === testId);
-    setSelectedTest(convertTestFromBackend(test));
-    setView("view");
+    if (test && test.subject) {
+      navigate(`/practice/${test.subject}`);
+    }
+    handleMoreMenuClose();
   };
 
   const handleViewAnalytics = (testId) => {
@@ -248,7 +274,7 @@ const TestsManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Practice Tests Management</h2>
-          <p className="text-muted">Create and manage practice tests</p>
+          <p style={{ color: '#222' }}>Create and manage practice tests</p>
         </div>
         <Button
           variant="contained"
@@ -318,6 +344,7 @@ const TestsManagement = () => {
             <thead>
               <tr>
                 <th>Title</th>
+                <th>Subject</th>
                 <th>Questions</th>
                 <th>Attempts</th>
                 <th>Avg Score</th>
@@ -341,6 +368,12 @@ const TestsManagement = () => {
                           {String(test.description || '')}
                         </div>
                       </div>
+                    </td>
+                    <td>
+                      {loadingSubjects
+                        ? <span>Loading...</span>
+                        : (subjects.find(s => s.value === test.subject)?.label || test.subject)
+                      }
                     </td>
                     <td>
                       <div className="flex items-center gap-1">

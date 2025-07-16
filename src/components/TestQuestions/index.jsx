@@ -48,11 +48,11 @@ function TestResults({ testData, answers, timeSpent, onRetake, onExit }) {
       let total = testData.questions.length;
 
       testData.questions.forEach((question, idx) => {
-        const userAnswer = answers[question.id];
+        const userAnswer = answers[question._id];
         const correctAnswer = question.correctAnswer;
         
         console.log(`Question ${idx + 1}:`, {
-          id: question.id,
+          id: question._id,
           text: question.questionText,
           userAnswer,
           correctAnswer,
@@ -165,7 +165,7 @@ function TestResults({ testData, answers, timeSpent, onRetake, onExit }) {
           <ScrollArea className="h-[400px] pr-4">
             <div className="space-y-4">
               {testData.questions.map((question, index) => (
-                <div key={question.id} className="p-4 border rounded-lg">
+                <div key={question._id} className="p-4 border rounded-lg">
                   <div className="flex gap-4">
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                       {index + 1}
@@ -175,7 +175,7 @@ function TestResults({ testData, answers, timeSpent, onRetake, onExit }) {
                       <div className="space-y-2">
                         {question.options.map((option, optIndex) => {
                           const isCorrect = question.correctAnswer === optIndex;
-                          const isChosen = answers[question.id] === optIndex;
+                          const isChosen = answers[question._id] === optIndex;
                           let className = "p-2 rounded border ";
                           
                           if (isCorrect && isChosen) {
@@ -285,7 +285,7 @@ function TestTakingInterface({ testData, onExit }) {
 
       // Gọi API submit kết quả
       const result = await submitPracticeTestResult({
-        testId: testData.id || testData._id,
+        testId: testData._id,
         answers,
         score,
         timeSpent,
@@ -340,14 +340,14 @@ function TestTakingInterface({ testData, onExit }) {
                   key={index}
                   variant={currentQuestion === index ? "default" : "outline"}
                   className={`relative ${
-                    answers[testData.questions[index].id] !== undefined
+                    answers[testData.questions[index]._id] !== undefined
                       ? "bg-green-100 hover:bg-green-200"
                       : ""
                   }`}
                   onClick={() => setCurrentQuestion(index)}
                 >
                   {index + 1}
-                  {flaggedQuestions.has(testData.questions[index].id) && (
+                  {flaggedQuestions.has(testData.questions[index]._id) && (
                     <Flag className="absolute -top-2 -right-2 h-4 w-4 text-orange-500" />
                   )}
                 </Button>
@@ -379,12 +379,12 @@ function TestTakingInterface({ testData, onExit }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => toggleFlag(question.id)}
+                onClick={() => toggleFlag(question._id)}
               >
                 <Flag className={`h-4 w-4 mr-2 ${
-                  flaggedQuestions.has(question.id) ? "fill-current text-orange-500" : ""
+                  flaggedQuestions.has(question._id) ? "fill-current text-orange-500" : ""
                 }`} />
-                {flaggedQuestions.has(question.id) ? "Unflag" : "Flag"}
+                {flaggedQuestions.has(question._id) ? "Unflag" : "Flag"}
               </Button>
             </div>
             <Progress value={progress} className="mt-2" />
@@ -395,8 +395,8 @@ function TestTakingInterface({ testData, onExit }) {
             </div>
 
             <RadioGroup
-              value={answers[question.id] !== undefined ? answers[question.id].toString() : undefined}
-              onValueChange={(value) => handleAnswerChange(question.id, Number(value))}
+              value={answers[question._id] !== undefined ? answers[question._id].toString() : undefined}
+              onValueChange={(value) => handleAnswerChange(question._id, Number(value))}
             >
               <div className="space-y-3">
                 {question.options.map((option, index) => (
@@ -449,13 +449,13 @@ export default function TestQuestions() {
   const [error, setError] = useState(null);
 
   const mockTestData = {
-    id: 1,
+    _id: 1,
     title: "Database Fundamentals Quiz",
     description: "Test your knowledge of database concepts, SQL, and data management",
     timeLimit: 45,
     questions: [
       {
-        id: 1,
+        _id: 1,
         type: "multiple-choice",
         questionText: "What does SQL stand for?",
         options: [
@@ -492,7 +492,6 @@ export default function TestQuestions() {
           ...testData,
           questions: testData.questions.map(q => ({
             _id: q._id,
-            id: q._id,
             type: q.type || 'multiple-choice',
             questionText: q.questionText || '',
             options: Array.isArray(q.options) ? q.options : [],

@@ -296,7 +296,7 @@ export default function TestForm({ test, onSave, onCancel }) {
                 // Extract properties safely
                 const questionText = String(question.questionText || question.question || "");
                 const options = Array.isArray(question.options) ? question.options.map(opt => String(opt)) : [];
-                const correctAnswer = String(question.correctAnswer || "");
+                const correctAnswer = typeof question.correctAnswer === 'number' ? question.correctAnswer : Number(question.correctAnswer);
                 const explanation = String(question.explanation || "");
                 const type = String(question.type || "multiple-choice");
                 const points = Number(question.points || 1);

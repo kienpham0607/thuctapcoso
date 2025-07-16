@@ -48,13 +48,30 @@ exports.getAllPracticeTests = async (req, res) => {
       totalAttemptsAll += a.totalAttempts;
     });
 
-    // Lấy avgScore cho mỗi test từ tất cả user
-    const avgScoreAgg = await PracticeTestResult.aggregate([
-      { $group: { _id: "$test", avgScore: { $avg: "$score" } } }
-    ]);
+    // Lấy avgScore cho mỗi test từ tất cả các lần làm (scoreHistory)
+    const allResults = await PracticeTestResult.find({});
+    const scoreSumMap = {};
+    const scoreCountMap = {};
+    allResults.forEach(r => {
+      const testId = r.test.toString();
+      if (!scoreSumMap[testId]) {
+        scoreSumMap[testId] = 0;
+        scoreCountMap[testId] = 0;
+      }
+      if (Array.isArray(r.scoreHistory) && r.scoreHistory.length > 0) {
+        r.scoreHistory.forEach(h => {
+          scoreSumMap[testId] += h.score;
+          scoreCountMap[testId] += 1;
+        });
+      } else {
+        // fallback nếu chưa có scoreHistory
+        scoreSumMap[testId] += r.score;
+        scoreCountMap[testId] += 1;
+      }
+    });
     const avgScoreMap = {};
-    avgScoreAgg.forEach(a => {
-      avgScoreMap[a._id.toString()] = a.avgScore;
+    Object.keys(scoreSumMap).forEach(testId => {
+      avgScoreMap[testId] = scoreCountMap[testId] > 0 ? Math.round(scoreSumMap[testId] / scoreCountMap[testId]) : 0;
     });
 
     // Nếu có user đăng nhập, join thêm kết quả của user đó
@@ -145,6 +162,9 @@ exports.submitPracticeTestResult = async (req, res) => {
       result.completed = completed !== undefined ? completed : true;
       result.attempts += 1;
       result.submittedAt = new Date();
+      // Thêm lịch sử điểm
+      result.scoreHistory = result.scoreHistory || [];
+      result.scoreHistory.push({ score, timeSpent, submittedAt: new Date(), answers });
       await result.save();
     } else {
       // Create new result
@@ -156,7 +176,8 @@ exports.submitPracticeTestResult = async (req, res) => {
         timeSpent,
         completed: completed !== undefined ? completed : true,
         attempts: 1,
-        submittedAt: new Date()
+        submittedAt: new Date(),
+        scoreHistory: [{ score, timeSpent, submittedAt: new Date(), answers }]
       });
     }
     console.log('[SUBMIT RESULT] testId:', testId, 'userId:', userId);
@@ -218,13 +239,40 @@ exports.getPracticeTestAnalytics = async (req, res) => {
     const test = await PracticeTest.findById(testId);
     if (!test) return res.status(404).json({ success: false, message: 'Practice test not found' });
 
+    // Tính maxScore động theo tổng điểm các câu hỏi
+    const maxScore = (test.questions || []).reduce((sum, q) => sum + (q.points || 1), 0);
+
     // Lấy tất cả kết quả của test này
     const results = await PracticeTestResult.find({ test: testId }).populate('user', 'fullName email avatar');
     const totalAttempts = results.reduce((sum, r) => sum + (r.attempts || 1), 0);
-    const avgScore = results.length ? (results.reduce((sum, r) => sum + r.score, 0) / results.length) : 0;
-    const passScore = test.passingScore || 70;
-    const passCount = results.filter(r => r.score >= passScore).length;
-    const passRate = results.length ? (passCount / results.length) * 100 : 0;
+    // Tính avgScore giống ngoài dashboard: trung bình tất cả các lần làm (scoreHistory)
+    let scoreSum = 0, scoreCount = 0;
+    results.forEach(r => {
+      if (Array.isArray(r.scoreHistory) && r.scoreHistory.length > 0) {
+        r.scoreHistory.forEach(h => {
+          scoreSum += h.score;
+          scoreCount += 1;
+        });
+      } else {
+        scoreSum += r.score;
+        scoreCount += 1;
+      }
+    });
+    const avgScore = scoreCount > 0 ? (scoreSum / scoreCount) : 0;
+    // Tính passRate đúng: số lần làm đạt điểm qua bài / tổng số lần làm (tính trên scoreHistory)
+    let passCount = 0, totalCount = 0;
+    results.forEach(r => {
+      if (Array.isArray(r.scoreHistory) && r.scoreHistory.length > 0) {
+        r.scoreHistory.forEach(h => {
+          totalCount++;
+          if (h.score >= (test.passingScore || 70)) passCount++;
+        });
+      } else {
+        totalCount++;
+        if (r.score >= (test.passingScore || 70)) passCount++;
+      }
+    });
+    const passRate = totalCount > 0 ? (passCount / totalCount) * 100 : 0;
     const avgTimeSpent = results.length ? (results.reduce((sum, r) => sum + (r.timeSpent || 0), 0) / results.length) : 0;
 
     // Phân phối điểm
@@ -249,63 +297,77 @@ exports.getPracticeTestAnalytics = async (req, res) => {
 
     // Thống kê từng câu hỏi
     const questionStats = (test.questions || []).map((q, idx) => {
-      let correct = 0, incorrect = 0, totalTime = 0, totalAns = 0;
-      let answerStats = {};
+      let correct = 0, incorrect = 0, totalShown = 0, totalTime = 0;
       results.forEach(r => {
-        const ans = r.answers ? r.answers[q._id] : undefined;
-        if (ans !== undefined) {
-          totalAns++;
-          answerStats[ans] = (answerStats[ans] || 0) + 1;
-          if (Number(ans) === Number(q.correctAnswer)) correct++;
-          else incorrect++;
+        if (Array.isArray(r.scoreHistory) && r.scoreHistory.length > 0) {
+          r.scoreHistory.forEach(h => {
+            totalShown++;
+            const ans = h.answers ? h.answers[q._id.toString()] : undefined;
+            if (ans !== undefined && Number(ans) === Number(q.correctAnswer)) {
+              correct++;
+            } else {
+              incorrect++;
+            }
+            totalTime += h.timeSpent || 0;
+          });
+        } else {
+          totalShown++;
+          const ans = r.answers ? r.answers[q._id.toString()] : undefined;
+          if (ans !== undefined && Number(ans) === Number(q.correctAnswer)) {
+            correct++;
+          } else {
+            incorrect++;
+          }
           totalTime += r.timeSpent || 0;
         }
       });
-      // Tìm đáp án sai phổ biến nhất (không phải đáp án đúng)
-      let commonWrongAnswer = null;
-      let maxWrong = 0;
-      for (const [ans, cnt] of Object.entries(answerStats)) {
-        if (Number(ans) !== Number(q.correctAnswer) && cnt > maxWrong) {
-          maxWrong = cnt;
-          commonWrongAnswer = ans;
-        }
-      }
       return {
         id: q._id,
         question: q.questionText,
         type: q.type || 'multiple-choice',
-        correctRate: totalAns ? Math.round((correct / totalAns) * 100) : 0,
+        correctRate: totalShown ? Math.round((correct / totalShown) * 100) : 0,
         correctAnswers: correct,
         incorrectAnswers: incorrect,
-        totalAnswers: totalAns,
+        totalAnswers: totalShown,
         correctAnswer: q.correctAnswer,
-        answerStats, // { answer: count }
-        commonWrongAnswer: commonWrongAnswer || '',
-        avgTimeSpent: totalAns ? Math.round(totalTime / totalAns) : 0,
+        avgTimeSpent: totalShown ? Math.round(totalTime / totalShown) : 0,
       };
     });
 
     // Danh sách kết quả học sinh
-    const studentResults = results.map(r => ({
-      id: r._id,
-      name: r.user?.fullName || 'Unknown',
-      email: r.user?.email || '',
-      avatar: r.user?.avatar || '',
-      score: r.score,
-      percentage: r.score,
-      timeSpent: r.timeSpent,
-      completedAt: r.submittedAt,
-      status: r.score >= passScore ? 'passed' : 'failed',
-      correctAnswers: Object.values(r.answers || {}).filter((ans, i) => {
-        const q = test.questions.find(q => q._id.toString() === Object.keys(r.answers)[i]);
-        return q && ans === q.correctAnswer;
-      }).length,
-      incorrectAnswers: Object.values(r.answers || {}).filter((ans, i) => {
-        const q = test.questions.find(q => q._id.toString() === Object.keys(r.answers)[i]);
-        return q && ans !== q.correctAnswer;
-      }).length,
-      attempts: r.attempts || 1,
-    }));
+    const studentResults = results.map(r => {
+      // Lấy danh sách câu hỏi của bài test này
+      const questions = test.questions || [];
+      let correct = 0, incorrect = 0;
+      questions.forEach(q => {
+        const ans = r.answers ? r.answers[q._id.toString()] : undefined;
+        if (ans !== undefined && Number(ans) === Number(q.correctAnswer)) {
+          correct++;
+        } else {
+          incorrect++;
+        }
+      });
+      return {
+        id: r._id,
+        name: r.user?.fullName || 'Unknown',
+        email: r.user?.email || '',
+        avatar: r.user?.avatar || '',
+        score: r.score,
+        percentage: r.score,
+        timeSpent: r.timeSpent,
+        completedAt: r.submittedAt,
+        status: r.score >= test.passingScore ? 'passed' : 'failed',
+        correctAnswers: correct,
+        incorrectAnswers: incorrect,
+        attempts: r.attempts || 1,
+        history: Array.isArray(r.scoreHistory) ? r.scoreHistory.map(h => ({
+          score: h.score,
+          timeSpent: h.timeSpent,
+          submittedAt: h.submittedAt,
+          answers: h.answers
+        })) : []
+      };
+    });
 
     results.forEach((r, idx) => {
       console.log(`[ANALYTICS] Result #${idx} answers:`, r.answers);
@@ -327,7 +389,7 @@ exports.getPracticeTestAnalytics = async (req, res) => {
           timeLimit: test.timeLimit,
           passingScore: test.passingScore,
           totalQuestions: test.questions.length,
-          maxScore: 100,
+          maxScore,
           status: test.status,
           attempts: totalAttempts,
           avgScore: Math.round(avgScore * 10) / 10,

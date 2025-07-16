@@ -1,76 +1,132 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'; // Định nghĩa URL base của API backend
+import axios from "axios";
 
-// Hàm trợ giúp để lấy Access Token (Cần điều chỉnh)
-const getAccessToken = () => {
-    // Đây là nơi bạn sẽ lấy access token từ Redux state hoặc localStorage
-    return localStorage.getItem('accessToken');
-};
+const API_URL = "http://localhost:5000/api";
 
-// Hàm trợ giúp cho các request API
-const apiRequest = async (url, method = 'GET', data = null) => {
-    const headers = {
-        'Content-Type': 'application/json',
-    };
-
-    // Chỉ gửi token cho các API cần xác thực
-    if (!['/send-otp', '/verify-otp'].includes(url)) {
-        const token = getAccessToken();
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-    }
-
-    const config = {
-        method,
-        headers,
-    };
-
-    if (data) {
-        config.body = JSON.stringify(data);
-    }
-
+const authApi = {
+  login: async (email, password) => {
     try {
-        const response = await fetch(`${API_URL}/auth${url}`, config);
-
-        // Check if response is JSON before parsing
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            // If not JSON, read as text and throw an error
-            const text = await response.text();
-            console.error('Server response was not JSON:', text);
-            throw new Error(`Server response was not JSON. Status: ${response.status}`);
-        }
-
-        const responseData = await response.json();
-
-        // TODO: Xử lý lỗi 401 và làm mới token
-
-        if (!response.ok) {
-            throw new Error(responseData.message || `API request failed with status ${response.status}`);
-        }
-
-        return responseData;
+      const response = await axios.post(`${API_URL}/auth/login`, {
+        email,
+        password
+      });
+      return response.data;
     } catch (error) {
-        console.error('API Request Error:', error);
-        throw error;
+      throw error;
     }
+  },
+
+  signup: async (userData) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/signup`, userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  forgotPassword: async (email) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/forgot-password`, { email }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  resetPassword: async (email, otp, newPassword) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/reset-password`, {
+        email,
+        otp,
+        newPassword
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  logout: async () => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/logout`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getUserProfileApi: async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.get(`${API_URL}/auth/profile`, { headers });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateUserProfileApi: async (userData) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.put(`${API_URL}/auth/profile`, userData, { headers });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  sendOtpApi: async (email) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/send-otp`, { email }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  verifyOtpApi: async (email, otp) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/verify-otp`, { email, otp }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  registerUserApi: async (userData) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
 };
 
-// API calls cho xác thực và hồ sơ
+export const { 
+  getUserProfileApi, 
+  updateUserProfileApi,
+  sendOtpApi,
+  verifyOtpApi,
+  registerUserApi
+} = authApi;
 
-export const registerUserApi = (userData) => apiRequest('/register', 'POST', userData);
-export const loginUserApi = (credentials) => apiRequest('/login', 'POST', credentials);
-export const refreshTokenApi = () => apiRequest('/refresh-token', 'POST'); // Refresh token thường không cần body, lấy từ cookie
-export const logoutUserApi = () => apiRequest('/logout', 'POST'); // Logout thường không cần body, xóa cookie
-
-export const getUserProfileApi = () => apiRequest('/profile', 'GET');
-export const updateUserProfileApi = (userData) => apiRequest('/profile', 'PUT', userData);
-
-// New API call to create a GPA entry
-export const createGpaEntryApi = (gpaEntryData) => apiRequest('/gpa', 'POST', gpaEntryData);
-
-// New API call to send OTP
-export const sendOtpApi = (email) => apiRequest('/send-otp', 'POST', { email });
-export const verifyOtpApi = (email, otp) => apiRequest('/verify-otp', 'POST', { email, otp });
-
-// Bạn có thể thêm các API khác liên quan đến auth ở đây 
+export default authApi;

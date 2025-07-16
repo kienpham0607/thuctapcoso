@@ -8,7 +8,8 @@ const PracticeTestResultSchema = new mongoose.Schema({
   attempts: { type: Number, default: 1 },
   answers: { type: Object, default: {} }, // { questionId: answer }
   timeSpent: { type: Number }, // in minutes
-  submittedAt: { type: Date, default: Date.now }
+  submittedAt: { type: Date, default: Date.now },
+  scoreHistory: [{ score: Number, timeSpent: Number, submittedAt: Date, answers: Object }], // Lưu lịch sử từng lần làm
 });
 
 PracticeTestResultSchema.index({ user: 1, test: 1 }, { unique: true });

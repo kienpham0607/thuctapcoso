@@ -461,33 +461,44 @@ export default function PractiseTests() {
       </Container>
 
       <Container maxWidth="lg" sx={{ mt: 8 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-          Danh sách bài Practice Test {subject ? `cho chủ đề: ${subject}` : ''}
+        <Typography variant="h4" sx={{ fontWeight: 800, mb: 4, textAlign: 'center', letterSpacing: 0.5 }}>
+          Practice Test List {subject ? `for subject: ${subject}` : ''}
         </Typography>
         {loading ? (
-          <Typography>Đang tải...</Typography>
+          <Typography>Loading...</Typography>
         ) : (
-          <Grid container spacing={2}>
+          <Grid container spacing={4}>
             {tests.filter(test => test.status === 'active' && (!subject || test.subject === subject)).length === 0 && (
               <Grid item xs={12}>
-                <Typography color="text.secondary">Chưa có bài test nào được duyệt.</Typography>
+                <Typography color="text.secondary" align="center">No approved test available.</Typography>
               </Grid>
             )}
             {tests.filter(test => test.status === 'active' && (!subject || test.subject === subject)).map(test => (
               <Grid item xs={12} md={6} lg={4} key={test._id}>
                 <Card
-                  sx={{ cursor: 'pointer', borderRadius: 2, mb: 2, '&:hover': { boxShadow: 6 } }}
+                  sx={{
+                    cursor: 'pointer',
+                    borderRadius: 4,
+                    mb: 2,
+                    boxShadow: '0 4px 24px rgba(22, 151, 125, 0.10)',
+                    transition: 'transform 0.22s, box-shadow 0.22s',
+                    '&:hover': {
+                      boxShadow: '0 12px 32px rgba(22, 151, 125, 0.18)',
+                      transform: 'translateY(-6px) scale(1.03)',
+                    },
+                    p: 0,
+                  }}
                   onClick={() => navigate(`/practice/${test.subject}/test/${test._id}`)}
                 >
-                  <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: '#1e293b' }}>
                       {test.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       {test.description}
                     </Typography>
-                    <Typography variant="caption" color="primary">
-                      Chủ đề: {test.subject}
+                    <Typography variant="caption" color="primary" sx={{ fontWeight: 600 }}>
+                      Subject: {test.subject}
                     </Typography>
                   </CardContent>
                 </Card>
